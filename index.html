@@ -444,13 +444,8 @@
   "use strict";
 
   // ---------- 비밀번호 잠금 ----------
-  // ⚠ 배포 전 이 값을 원하는 비밀번호로 반드시 바꾸세요.
-  // 이 파일은 정적 HTML이라 브라우저에서 소스 보기만 해도 이 값이 그대로 보입니다.
-  // 즉, 검색엔진 노출을 막고 아무나 쉽게 열어보지 못하게 하는 용도이지,
-  // 진짜 보안이 필요한 정보를 지키는 잠금장치는 아닙니다. (특히 깃허브 "공개" 저장소로
-  // 배포하면 이 소스 코드 자체를 누구나 볼 수 있으니, 저장소를 Private으로 두는 것도
-  // 함께 고려하세요.)
-  var SITE_PASSWORD = "바꿔주세요";
+  // 비밀번호 누출구간 아몰랑
+  var SITE_PASSWORD = "12345";
   var UNLOCK_KEY = "repairBotUnlocked";
 
   var lockScreen = document.getElementById("lockScreen");
@@ -483,7 +478,7 @@
         pwInput.value = "";
         pwInput.focus();
         lockCard.classList.remove("shake");
-        void lockCard.offsetWidth; // 애니메이션 재시작
+        void lockCard.offsetWidth; 
         lockCard.classList.add("shake");
       }
     });
