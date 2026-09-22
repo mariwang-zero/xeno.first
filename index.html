@@ -81,6 +81,40 @@
     display:grid;
     grid-template-columns: 296px 1fr;
   }
+  .app[hidden]{ display:none; }
+
+  /* ---------- Lock screen ---------- */
+  .lock-screen{
+    position:fixed; inset:0; z-index:100;
+    background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .lock-screen[hidden]{ display:none; }
+  .lock-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    box-shadow:var(--shadow); padding:34px 28px 28px;
+    width:min(340px,100%);
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+  }
+  .lock-title{ font-family:'Black Han Sans','Gothic A1',sans-serif; font-size:18px; margin-top:12px; }
+  .lock-sub{ font-size:12.5px; color:var(--muted); margin-top:5px; margin-bottom:18px; line-height:1.5; }
+  .lock-form{ width:100%; display:flex; flex-direction:column; gap:10px; }
+  .lock-form input{
+    width:100%; border:1px solid var(--line); background:var(--surface-2); color:var(--ink);
+    border-radius:10px; padding:11px 13px; font-size:14px; font-family:inherit; text-align:center;
+  }
+  .lock-form input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .lock-form button{
+    all:unset; cursor:pointer; text-align:center; box-sizing:border-box;
+    background:var(--accent); color:var(--accent-ink); font-weight:800;
+    padding:11px; border-radius:10px; font-size:14px;
+  }
+  .lock-error{ color:var(--danger); font-size:12.5px; margin-top:10px; }
+  .lock-error[hidden]{ display:none; }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
+  .lock-card.shake{ animation:shake .28s ease; }
+  @media (prefers-reduced-motion: reduce){ .lock-card.shake{ animation:none; } }
   @media (max-width: 780px){
     .app{ grid-template-columns: 1fr; grid-template-rows:auto 1fr; }
     .sidebar{ order:1; }
@@ -305,7 +339,22 @@
 </head>
 <body>
 
-<div class="app">
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card" id="lockCard">
+    <div class="brand-badge" aria-hidden="true">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M14.7 6.3a4 4 0 0 1-5.1 5.1L4 17l3 3 5.6-5.6a4 4 0 0 1 5.1-5.1l-2.6 2.6-2-2 2.6-2.6Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="lock-title">수리 접수 도우미</div>
+    <div class="lock-sub">개인용 페이지입니다.<br>비밀번호를 입력해 주세요.</div>
+    <form class="lock-form" id="pwForm">
+      <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off" autofocus>
+      <button type="submit">입장하기</button>
+    </form>
+    <div class="lock-error" id="pwError" hidden>비밀번호가 올바르지 않습니다.</div>
+  </div>
+</div>
+
+<div class="app" id="appRoot" hidden>
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-badge" aria-hidden="true">
@@ -393,6 +442,52 @@
 <script>
 (function(){
   "use strict";
+
+  // ---------- 비밀번호 잠금 ----------
+  // ⚠ 배포 전 이 값을 원하는 비밀번호로 반드시 바꾸세요.
+  // 이 파일은 정적 HTML이라 브라우저에서 소스 보기만 해도 이 값이 그대로 보입니다.
+  // 즉, 검색엔진 노출을 막고 아무나 쉽게 열어보지 못하게 하는 용도이지,
+  // 진짜 보안이 필요한 정보를 지키는 잠금장치는 아닙니다. (특히 깃허브 "공개" 저장소로
+  // 배포하면 이 소스 코드 자체를 누구나 볼 수 있으니, 저장소를 Private으로 두는 것도
+  // 함께 고려하세요.)
+  var SITE_PASSWORD = "바꿔주세요";
+  var UNLOCK_KEY = "repairBotUnlocked";
+
+  var lockScreen = document.getElementById("lockScreen");
+  var appRoot = document.getElementById("appRoot");
+  var pwForm = document.getElementById("pwForm");
+  var pwInput = document.getElementById("pwInput");
+  var pwError = document.getElementById("pwError");
+  var lockCard = document.getElementById("lockCard");
+
+  function unlockApp(){
+    try{ sessionStorage.setItem(UNLOCK_KEY, "1"); }catch(e){}
+    lockScreen.hidden = true;
+    appRoot.hidden = false;
+    var firstInput = document.getElementById("input");
+    if(firstInput) firstInput.focus();
+  }
+
+  var alreadyUnlocked = false;
+  try{ alreadyUnlocked = sessionStorage.getItem(UNLOCK_KEY) === "1"; }catch(e){}
+
+  if(alreadyUnlocked){
+    unlockApp();
+  } else {
+    pwForm.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(pwInput.value === SITE_PASSWORD){
+        unlockApp();
+      } else {
+        pwError.hidden = false;
+        pwInput.value = "";
+        pwInput.focus();
+        lockCard.classList.remove("shake");
+        void lockCard.offsetWidth; // 애니메이션 재시작
+        lockCard.classList.add("shake");
+      }
+    });
+  }
 
   // ---------- 데이터 (수리단가표_데모.xlsx 와 동일한 내용) ----------
   var DATA = [
