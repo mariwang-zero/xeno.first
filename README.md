@@ -1,2 +1,2 @@
-# xeno.first
-랜딩페이지
+# xeno.wh01
+맛보기용
