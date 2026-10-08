@@ -245,6 +245,23 @@ export const api = {
     save()
     return wait(run, 900)
   },
+  // 배포 뒤 다음 개정: 현재 사용본을 원본으로 새 작업을 만들고 진행 중부터 다시 돈다 (배포 → 진행 중 → … → 배포, Rev. +1)
+  async startRevision(productId) {
+    requireMe()
+    if (!can.aiDraft(me)) return fail('개정은 문서 담당자만 시작할 수 있습니다.')
+    const p = productOf(productId)
+    const open = db.docs.find(d => d.productId === productId && d.status !== 'deploy')
+    if (open) return fail(`이미 진행 중인 작업이 있습니다: ${open.title}`)
+    const cur = db.versions.find(v => v.id === p.currentVersionId)
+    if (!cur) return fail('현재 사용본이 없습니다. 먼저 AI 초안 생성으로 작업을 시작해 주세요.')
+    const base = docOf(cur.docId)
+    const d = { id: nextId('doc', 'd'), productId, title: `${p.name} KO 사용설명서 ${fmtRev(p.rev + 1)} 개정`, status: 'progress', held: null, ownerId: me.id, lock: null, createdAt: now(), pages: clone(base.pages), manualLeft: [] }
+    db.docs.push(d)
+    addVersion(d.id, 'original', cur.name, `${fmtRev(p.rev)} 현재 사용본에서 개정 시작`, cur.size)
+    log(d.id, `개정 시작: ${fmtRev(p.rev)} → ${fmtRev(p.rev + 1)} (진행 중)`)
+    save()
+    return wait(docSummary(d))
+  },
   async aiRun(id) {
     const r = runOf(id)
     if (!r) return fail('AI 분석 결과를 찾을 수 없습니다.')

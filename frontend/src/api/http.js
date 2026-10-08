@@ -42,6 +42,7 @@ export const api = {
 
   references: () => get('/references'),
   startAi: (productId, inputs) => post(`/products/${productId}/ai`, filesForm({ referenceId: inputs.referenceId, mustInclude: inputs.mustInclude, extra: inputs.extra }, inputs.files || [])),
+  startRevision: productId => post(`/products/${productId}/revisions`),
   aiRun: id => get(`/ai/${id}`),
   applyAi: (id, checkedNos) => post(`/ai/${id}/apply`, { checked: checkedNos }),
 

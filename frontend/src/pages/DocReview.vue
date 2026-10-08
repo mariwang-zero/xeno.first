@@ -143,7 +143,7 @@ const panelText = ref('')
 function openPanel(kind) {
   panel.value = panel.value === kind ? null : kind
   panelText.value = ''
-  if (kind === 'deploy') api.deployPreview(props.id).then(p => { panelText.value = p.summary; panel.value = 'deploy'; deployRev.value = p.rev })
+  if (kind === 'deploy') api.deployPreview(props.id).then(p => { if (!panelText.value) panelText.value = p.summary; panel.value = 'deploy'; deployRev.value = p.rev })
 }
 const deployRev = ref(0)
 async function docAct(fn, ok) {
@@ -165,6 +165,12 @@ async function askReview() {
 }
 const approve = () => docAct(() => api.finalize(props.id, true), '최종 검토 완료로 바꿨습니다.')
 const reject = () => docAct(() => api.finalize(props.id, false, panelText.value), '반려했습니다. 진행 중으로 돌아갑니다.')
+async function startRevision() {
+  const next = 'Rev.' + String(d.value.product.rev + 1).padStart(2, '0')
+  if (!window.confirm(`현재 사용본에서 ${next} 개정을 시작할까요? 진행 중 단계부터 다시 돕니다.`)) return
+  const n = await attempt(() => api.startRevision(d.value.product.id), `${next} 개정을 시작했습니다.`)
+  if (n) router.push('/docs/' + n.id)
+}
 const deploy = () => docAct(() => api.deploy(props.id, panelText.value), '배포했습니다. 현재 사용본이 바뀌었습니다.')
 function download() {
   notify(isDemo ? '데모라서 실제 파일은 내려받지 않습니다.' : '내려받는 중입니다.')
@@ -206,6 +212,7 @@ function toggleArea() {
           <button class="btn danger" @click="openPanel('reject')">반려</button>
         </template>
         <button v-if="d.status === 'final' && can.finalize(me)" class="btn primary" @click="openPanel('deploy')">배포</button>
+        <button v-if="d.status === 'deploy' && can.aiDraft(me)" class="btn primary" @click="startRevision">다음 개정 시작</button>
         <template v-if="isOwner && ['progress', 'review'].includes(d.status)">
           <button v-if="d.held" class="btn" @click="unhold">보류 해제</button>
           <button v-else class="btn ghost" @click="openPanel('hold')">보류</button>
@@ -242,6 +249,7 @@ function toggleArea() {
     </div>
     <div v-if="d.lock && !lockMine" class="band warn">🔒 {{ d.lock.user.name }}님이 {{ fmtDateTime(d.lock.at) }}부터 편집 중입니다. 편집이 끝날 때까지 다른 사람은 편집할 수 없습니다.</div>
     <div v-if="lockMine" class="band info">편집 중입니다. 내려받은 파일을 워드로 고친 뒤 <b>편집본 올리기</b>를 눌러 주세요.</div>
+    <div v-if="d.status === 'deploy'" class="band info">배포된 문서입니다(현재 <span class="mono">Rev.{{ String(d.product.rev).padStart(2, '0') }}</span>). 고칠 것이 생기면 <b>다음 개정 시작</b>으로 진행 중부터 다시 진행하고, 다음 배포 때 <span class="mono">Rev.{{ String(d.product.rev + 1).padStart(2, '0') }}</span>이 됩니다.</div>
     <div v-if="d.held" class="band warn">보류 중: {{ d.held.reason }}</div>
     <div v-if="d.manual.length" class="band">이미지 {{ d.manual.length }}건은 수작업이 필요합니다: <span v-for="m in d.manual" :key="m.no" class="tag" style="margin-left: 4px">p.{{ m.page }} {{ m.summary }}</span></div>
     <div v-if="d.status === 'progress' && !settings.reviewFlow" class="band">검토·배포 단계는 아직 쓰지 않도록 설정되어 있습니다(관리 &gt; 기본값).</div>

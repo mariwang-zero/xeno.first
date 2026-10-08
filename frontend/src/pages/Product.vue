@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { api, isDemo } from '../api/index.js'
 import { session, attempt, notify } from '../store.js'
 import Chip from '../components/Chip.vue'
@@ -12,6 +13,14 @@ const p = ref(null)
 const settings = ref({ reviewFlow: true })
 const tab = ref('ref')
 const fileInput = ref(null)
+const router = useRouter()
+// 배포가 끝나 열린 작업이 없으면, 현재 사용본에서 다음 개정을 진행 중부터 시작할 수 있다
+const canRevise = computed(() => p.value && can.aiDraft(session.user) && p.value.current && !p.value.docs.some(d => d.status !== 'deploy'))
+async function startRevision() {
+  if (!window.confirm(`${fmtRev(p.value.rev)} 현재 사용본에서 ${fmtRev(p.value.rev + 1)} 개정을 시작할까요?`)) return
+  const d = await attempt(() => api.startRevision(p.value.id), `${fmtRev(p.value.rev + 1)} 개정을 시작했습니다. 진행 중 단계입니다.`)
+  if (d) router.push('/docs/' + d.id)
+}
 
 async function load() {
   const [pp, st] = await Promise.all([api.product(props.id), api.settings()])
@@ -60,7 +69,8 @@ function download() {
       <div class="row">
         <button class="btn" @click="pickFile">참고자료 등록</button>
         <input ref="fileInput" type="file" hidden @change="onFile" />
-        <router-link v-if="can.aiDraft(session.user)" class="btn primary" :to="'/products/' + p.id + '/ai/new'">AI 초안 생성</router-link>
+        <button v-if="canRevise" class="btn primary" @click="startRevision">{{ fmtRev(p.rev + 1) }} 개정 시작</button>
+        <router-link v-if="can.aiDraft(session.user)" class="btn" :class="{ primary: !canRevise }" :to="'/products/' + p.id + '/ai/new'">AI 초안 생성</router-link>
       </div>
     </div>
 
