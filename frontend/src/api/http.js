@@ -42,6 +42,7 @@ export const api = {
 
   references: () => get('/references'),
   startAi: (productId, inputs) => post(`/products/${productId}/ai`, filesForm({ referenceId: inputs.referenceId, mustInclude: inputs.mustInclude, extra: inputs.extra }, inputs.files || [])),
+  importManual: (productId, { file, rev }) => post(`/products/${productId}/import`, filesForm({ rev }, file ? [file] : [])),
   startRevision: productId => post(`/products/${productId}/revisions`),
   aiRun: id => get(`/ai/${id}`),
   applyAi: (id, checkedNos) => post(`/ai/${id}/apply`, { checked: checkedNos }),
@@ -74,4 +75,6 @@ export const api = {
   saveProduct: p => post('/admin/products', p),
   saveSettings: s => post('/admin/settings', s),
   resetDemo: async () => true,
+  // 파일 내려받기 주소. kind: products(현재 사용본) / docs(작업의 최신 버전) / versions / files
+  fileUrl: (kind, id) => `/api/${kind}/${id}/file`,
 }

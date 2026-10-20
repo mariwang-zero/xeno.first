@@ -219,3 +219,7 @@ dl.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
   dl.facts dd { margin-bottom: 8px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* 글자처럼 보이는 버튼 (파일 이름 눌러 내려받기) */
+.linkish { font: inherit; background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-align: left; }
+.linkish:hover { text-decoration: underline; }

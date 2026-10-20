@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { api } from '../api/index.js'
+import { api, isDemo } from '../api/index.js'
 import { attempt, refreshMe } from '../store.js'
 import { ROLES, DEPARTMENTS } from '../lib/status.js'
 
@@ -51,7 +51,7 @@ const catName = id => data.value.categories.find(c => c.id === id)?.name
 
 <template>
   <main class="page" v-if="data">
-    <div class="page-head"><div class="grow"><h1>관리</h1><p class="muted small">사용자 역할, 제품 목록, 기본값을 바꿉니다. 관리자만 볼 수 있습니다.</p></div></div>
+    <div class="page-head"><div class="grow"><h1>관리</h1><p class="muted small">사용자 역할, 제품 목록, 기본값을 바꿉니다. 관리자만 볼 수 있습니다.<template v-if="!isDemo"> NAS 계정으로 처음 로그인한 사람은 일반 사용자로 자동 추가됩니다. 아이디를 NAS 계정과 같게 미리 추가해 두면 역할을 먼저 정할 수 있습니다.</template></p></div></div>
     <div class="tabs-bar" role="tablist">
       <button role="tab" :aria-selected="tab === 'users'" :class="{ on: tab === 'users' }" @click="tab = 'users'">사용자·역할</button>
       <button role="tab" :aria-selected="tab === 'products'" :class="{ on: tab === 'products' }" @click="tab = 'products'">제품</button>
@@ -64,7 +64,7 @@ const catName = id => data.value.categories.find(c => c.id === id)?.name
           <thead><tr><th>이름</th><th>아이디</th><th>부서</th><th>역할</th><th>관리자</th><th>사용</th></tr></thead>
           <tbody>
             <tr v-for="u in data.users" :key="u.id" :class="{ off: !u.active }">
-              <td class="t-title">{{ u.name }}</td>
+              <td><input type="text" class="name-in" :value="u.name" :aria-label="u.username + ' 이름'" @change="e => e.target.value.trim() && saveUser({ ...u, name: e.target.value.trim() })" /></td>
               <td class="mono small">{{ u.username }}</td>
               <td><select :value="u.dept" @change="e => saveUser({ ...u, dept: e.target.value })"><option v-for="x in DEPARTMENTS" :key="x">{{ x }}</option></select></td>
               <td><select :value="u.role" @change="e => saveUser({ ...u, role: e.target.value })"><option v-for="(l, k) in ROLES" :key="k" :value="k">{{ l }}</option></select></td>
@@ -147,6 +147,7 @@ const catName = id => data.value.categories.find(c => c.id === id)?.name
 .tabs-bar button { font: inherit; background: none; border: 0; padding: 8px 14px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
 .tabs-bar button.on { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
 tr.off td { opacity: .55; }
+.name-in { width: 9em; padding: 4px 8px; font-size: var(--fs-sm); }
 table.list select { width: auto; padding: 4px 8px; font-size: var(--fs-sm); }
 .add { border-top: 1px solid var(--line); display: grid; gap: 10px; }
 .add-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }

@@ -153,7 +153,7 @@ async function docAct(fn, ok) {
     await load()
   }
 }
-const startEdit = () => docAct(() => api.startEdit(props.id), isDemo ? '편집을 시작했습니다. 다른 사람은 편집할 수 없습니다. (데모라서 실제 파일은 내려받지 않습니다)' : '편집을 시작했습니다. 내려받은 파일을 워드로 고친 뒤 올려 주세요.')
+const startEdit = () => docAct(() => api.startEdit(props.id).then(r => { if (!isDemo) download(); return r }), isDemo ? '편집을 시작했습니다. 다른 사람은 편집할 수 없습니다. (데모라서 실제 파일은 내려받지 않습니다)' : '편집을 시작했습니다. 내려받은 파일을 워드로 고친 뒤 올려 주세요.')
 const sendUpload = () => docAct(() => api.uploadEdit(props.id, { file: upload.value.file, fileName: upload.value.file?.name, note: upload.value.note }), '편집본을 올렸습니다. 잠금을 풀었습니다.').then(() => (upload.value = { file: null, note: '' }))
 const cancelEdit = () => docAct(() => api.cancelEdit(props.id), '잠금을 풀었습니다.')
 const hold = () => docAct(() => api.setHold(props.id, panelText.value), '보류했습니다.')
@@ -173,7 +173,8 @@ async function startRevision() {
 }
 const deploy = () => docAct(() => api.deploy(props.id, panelText.value), '배포했습니다. 현재 사용본이 바뀌었습니다.')
 function download() {
-  notify(isDemo ? '데모라서 실제 파일은 내려받지 않습니다.' : '내려받는 중입니다.')
+  if (isDemo) return notify('데모라서 실제 파일은 내려받지 않습니다.')
+  window.location.href = api.fileUrl('docs', props.id)
 }
 function toggleArea() {
   areaMode.value = !areaMode.value

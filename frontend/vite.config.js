@@ -5,7 +5,7 @@ import vue from '@vitejs/plugin-vue'
 // 데모(--mode demo): 가짜 데이터(mock)로 동작하는 한 장짜리 HTML 을 만든다.
 export default defineConfig(({ mode }) => ({
   plugins: [vue()],
-  base: './',
+  base: mode === 'demo' ? './' : '/',
   define: {
     __API_MODE__: JSON.stringify(mode === 'demo' ? 'mock' : (process.env.API_MODE || 'http')),
     __ROUTER_MODE__: JSON.stringify(mode === 'demo' ? 'memory' : 'web'),

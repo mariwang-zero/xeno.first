@@ -15,7 +15,7 @@ async function makeCurrent(v) {
   if (!window.confirm(`${v.name}을(를) 현재 사용본으로 지정할까요?`)) return
   if (await attempt(() => api.setCurrent(v.id), '현재 사용본을 바꿨습니다.')) await load()
 }
-const download = () => notify(isDemo ? '데모라서 실제 파일은 내려받지 않습니다.' : '내려받는 중입니다.')
+const download = v => (isDemo ? notify('데모라서 실제 파일은 내려받지 않습니다.') : (window.location.href = api.fileUrl('versions', v.id)))
 </script>
 
 <template>
@@ -46,7 +46,7 @@ const download = () => notify(isDemo ? '데모라서 실제 파일은 내려받�
               <td class="num small">{{ fmtDateTime(v.at) }}</td>
               <td class="small">{{ v.note }}</td>
               <td class="row nowrap">
-                <button class="btn sm" @click="download">내려받기</button>
+                <button class="btn sm" @click="download(v)">내려받기</button>
                 <button v-if="can.setCurrent(session.user) && v.id !== h.currentVersionId && ['final', 'original'].includes(v.kind)" class="btn sm" @click="makeCurrent(v)">현재 사용본으로</button>
               </td>
             </tr>

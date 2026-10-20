@@ -54,7 +54,23 @@ function pickFile() {
   fileInput.value.click()
 }
 function download() {
-  notify(isDemo ? '데모라서 실제 파일은 내려받지 않습니다.' : '내려받는 중입니다.')
+  if (isDemo) return notify('데모라서 실제 파일은 내려받지 않습니다.')
+  window.location.href = api.fileUrl('products', p.value.id)
+}
+function openFile(f) {
+  if (isDemo) return notify('데모라서 실제 파일은 내려받지 않습니다.')
+  window.location.href = api.fileUrl(tab.value === 'ref' ? 'files' : 'versions', f.id)
+}
+// 기존 매뉴얼 등록: 열린 작업이 없을 때, 지금 쓰는 워드 파일을 현재 사용본으로 올린다
+const importInput = ref(null)
+const canImport = computed(() => p.value && (can.aiDraft(session.user) || session.user?.admin) && !p.value.docs.some(d => d.status !== 'deploy'))
+async function onImport(e) {
+  const f = e.target.files?.[0]
+  e.target.value = ''
+  if (!f) return
+  const rev = window.prompt(`${f.name}의 Rev. 번호를 적어 주세요 (숫자만)`, String(p.value.rev || 1))
+  if (rev === null) return
+  if (await attempt(() => api.importManual(p.value.id, { file: f, fileName: f.name, size: f.size, rev: rev.trim() }), '기존 매뉴얼을 현재 사용본으로 등록했습니다.')) load()
 }
 </script>
 
@@ -69,6 +85,8 @@ function download() {
       <div class="row">
         <button class="btn" @click="pickFile">참고자료 등록</button>
         <input ref="fileInput" type="file" hidden @change="onFile" />
+        <button v-if="canImport" class="btn" @click="importInput.click()">기존 매뉴얼 등록</button>
+        <input ref="importInput" type="file" accept=".docx" hidden @change="onImport" />
         <button v-if="canRevise" class="btn primary" @click="startRevision">{{ fmtRev(p.rev + 1) }} 개정 시작</button>
         <router-link v-if="can.aiDraft(session.user)" class="btn" :class="{ primary: !canRevise }" :to="'/products/' + p.id + '/ai/new'">AI 초안 생성</router-link>
       </div>
@@ -118,7 +136,7 @@ function download() {
             <button v-for="t in tabs" :key="t.k" role="tab" :aria-selected="tab === t.k" :class="{ on: tab === t.k }" @click="tab = t.k">{{ t.label }} <span class="num xs">{{ t.items.length }}</span></button>
           </div>
           <ul class="files" v-if="tabItems.length">
-            <li v-for="f in tabItems" :key="f.id"><span class="mono xs" style="overflow-wrap: anywhere">{{ f.name }}</span><span class="xs muted">{{ f.user?.name }} · {{ fmtDate(f.at) }}<template v-if="f.note"> · {{ f.note }}</template></span></li>
+            <li v-for="f in tabItems" :key="f.id"><button class="linkish mono xs" style="overflow-wrap: anywhere" :title="f.name + ' 내려받기'" @click="openFile(f)">{{ f.name }}</button><span class="xs muted">{{ f.user?.name }} · {{ fmtDate(f.at) }}<template v-if="f.note"> · {{ f.note }}</template></span></li>
           </ul>
           <div v-else class="empty">파일이 없습니다.</div>
         </section>

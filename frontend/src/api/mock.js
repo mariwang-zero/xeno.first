@@ -18,7 +18,8 @@ function save() {
   try { localStorage.setItem(KEY, JSON.stringify(db)) } catch {}
 }
 const clone = v => JSON.parse(JSON.stringify(v))
-const wait = (v, ms = 40) => new Promise(r => setTimeout(() => r(clone(v)), ms))
+// 서버(server/server.mjs)에서 돌 때는 기다리지 않고 바로 돌려준다.
+const wait = (v, ms = 40) => globalThis.__MANUAL_SERVER__ ? Promise.resolve(clone(v)) : new Promise(r => setTimeout(() => r(clone(v)), ms))
 const now = () => toLocalIso(new Date())
 const fail = msg => Promise.reject(new Error(msg))
 const user = id => db.users.find(u => u.id === id) || null
@@ -118,6 +119,13 @@ function fakeSuggest(refPages, productName, inputs) {
     items.push({ page: spec.page, kind: 'table', note: 'check', before: row[1], after: '(신규 값 확인 필요)', summary: `${row[0]} 값이 등록 자료에서 확인되지 않음`, basis: '(근거 없음)', checked: false })
   }
   return items.map((it, i) => ({ no: i + 1, ...it }))
+}
+
+// 서버가 요청마다 로그인한 사람을 정하고, 저장된 데이터를 직접 읽기 위한 연결점. 데모에서는 쓰지 않는다.
+export const server = {
+  setMe(id) { me = id ? user(id) : null },
+  db: () => db,
+  save,
 }
 
 export const api = {
@@ -244,6 +252,27 @@ export const api = {
     log(d.id, `AI 분석: 추천 ${run.items.length}건${bad.length ? `, 읽지 못한 자료 ${bad.length}건` : ''}`)
     save()
     return wait(run, 900)
+  },
+  // 기존 매뉴얼 등록: 지금 쓰고 있는 워드 파일을 현재 사용본으로 올려 둔다. 이후 개정은 여기서 시작한다.
+  async importManual(productId, { fileName, size, rev, pages }) {
+    requireMe()
+    if (!can.aiDraft(me) && !me.admin) return fail('문서 담당자나 관리자만 등록할 수 있습니다.')
+    if (!fileName || !/\.docx$/i.test(fileName)) return fail('DOCX 파일을 골라 주세요.')
+    const p = productOf(productId)
+    const open = db.docs.find(d => d.productId === productId && d.status !== 'deploy')
+    if (open) return fail(`진행 중인 작업이 있어 등록할 수 없습니다: ${open.title}`)
+    const n = Number(rev)
+    if (!Number.isInteger(n) || n < 0 || n > 99) return fail('Rev.는 0~99 사이 숫자로 적어 주세요.')
+    const d = { id: nextId('doc', 'd'), productId, title: `${p.name} KO 사용설명서 ${fmtRev(n)} (기존 매뉴얼)`, status: 'deploy', held: null, ownerId: me.id, lock: null, createdAt: now(), pages: pages || cameraManual(p.name), manualLeft: [] }
+    db.docs.push(d)
+    const v = addVersion(d.id, 'final', fileName, `기존 매뉴얼 등록 (${fmtRev(n)})`, Math.round((size || 0) / 1e5) / 10 || 0.1)
+    p.rev = n
+    p.currentVersionId = v.id
+    db.revs = db.revs.filter(r => !(r.productId === p.id && r.rev === n))
+    db.revs.push({ productId: p.id, rev: n, summary: '기존 매뉴얼 등록', at: now().slice(0, 10), userId: me.id })
+    log(d.id, `기존 매뉴얼 등록: ${fileName} (${fmtRev(n)})`, true)
+    save()
+    return wait(docSummary(d))
   },
   // 배포 뒤 다음 개정: 현재 사용본을 원본으로 새 작업을 만들고 진행 중부터 다시 돈다 (배포 → 진행 중 → … → 배포, Rev. +1)
   async startRevision(productId) {
