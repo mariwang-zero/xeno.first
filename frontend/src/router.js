@@ -9,17 +9,21 @@ import DocReview from './pages/DocReview.vue'
 import Requests from './pages/Requests.vue'
 import History from './pages/History.vue'
 import Admin from './pages/Admin.vue'
+import Dashboard from './pages/Dashboard.vue'
 
+// 첫 화면은 요청 현황(/), 제품 목록은 /products.
 // 화면 번호는 화면 설계서 v2 (S01~S10). S07 수정 요청 쓰기는 S06 위에 뜨는 창.
 const routes = [
   { path: '/login', component: Login, meta: { public: true } },
-  { path: '/', component: Main },
+  { path: '/', component: Dashboard },
+  { path: '/products', component: Main },
   { path: '/products/:id', component: Product, props: true },
   { path: '/products/:id/ai/new', component: AiNew, props: true },
   { path: '/ai/:id', component: AiReview, props: true },
   { path: '/docs/:id', component: DocReview, props: true },
   { path: '/docs/:id/history', component: History, props: true },
   { path: '/requests', component: Requests },
+  { path: '/dashboard', redirect: '/' },
   { path: '/admin', component: Admin },
 ]
 

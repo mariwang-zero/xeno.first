@@ -42,7 +42,7 @@ async function apply() {
   <main class="page" v-if="run">
     <div class="page-head">
       <div class="grow">
-        <div class="eyebrow crumbs"><router-link to="/">제품</router-link> / <router-link :to="'/products/' + run.doc.product.id">{{ run.doc.product.name }}</router-link> / <span>AI 초안</span></div>
+        <div class="eyebrow crumbs"><router-link to="/products">제품</router-link> / <router-link :to="'/products/' + run.doc.product.id">{{ run.doc.product.name }}</router-link> / <span>AI 초안</span></div>
         <h1>변경 추천 검토</h1>
         <div class="small muted">{{ run.user.name }} · {{ fmtDateTime(run.at) }} · 기준: <span class="mono">{{ run.inputs.reference }}</span></div>
       </div>

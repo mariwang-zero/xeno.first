@@ -84,7 +84,7 @@ async function onImport(e) {
   <main class="page" v-if="p">
     <div class="page-head">
       <div class="grow">
-        <div class="eyebrow crumbs"><router-link to="/">제품</router-link> / <span>{{ p.category.name }}</span> / <span>{{ p.name }}</span></div>
+        <div class="eyebrow crumbs"><router-link to="/products">제품</router-link> / <span>{{ p.category.name }}</span> / <span>{{ p.name }}</span></div>
         <h1>{{ p.name }}</h1>
         <div class="row small muted"><span class="mono">{{ p.docNo }}</span><span>·</span><span>{{ p.rev ? '배포 ' + fmtRev(p.rev) : '배포 이력 없음' }}</span></div>
       </div>

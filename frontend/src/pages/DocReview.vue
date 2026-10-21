@@ -184,7 +184,7 @@ function toggleArea() {
   <main class="page wide" v-if="d">
     <div class="page-head">
       <div class="grow">
-        <div class="eyebrow crumbs"><router-link to="/">제품</router-link> / <router-link :to="'/products/' + d.product.id">{{ d.product.name }}</router-link> / <span>문서 검토</span></div>
+        <div class="eyebrow crumbs"><router-link to="/products">제품</router-link> / <router-link :to="'/products/' + d.product.id">{{ d.product.name }}</router-link> / <span>문서 검토</span></div>
         <h1>{{ d.title }}</h1>
         <div class="row small">
           <Chip kind="doc" :status="d.status" :held="d.held" />

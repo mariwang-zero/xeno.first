@@ -22,7 +22,7 @@ const download = v => attempt(() => api.download('versions', v.id))
   <main class="page" v-if="h">
     <div class="page-head">
       <div class="grow">
-        <div class="eyebrow crumbs"><router-link to="/">제품</router-link> / <router-link :to="'/products/' + h.doc.product.id">{{ h.doc.product.name }}</router-link> / <router-link :to="'/docs/' + h.doc.id">문서 검토</router-link> / <span>버전·이력</span></div>
+        <div class="eyebrow crumbs"><router-link to="/products">제품</router-link> / <router-link :to="'/products/' + h.doc.product.id">{{ h.doc.product.name }}</router-link> / <router-link :to="'/docs/' + h.doc.id">문서 검토</router-link> / <span>버전·이력</span></div>
         <h1>버전·변경 이력</h1>
         <div class="row small"><Chip kind="doc" :status="h.doc.status" :held="h.doc.held" /><span class="muted">{{ h.doc.title }}</span></div>
       </div>

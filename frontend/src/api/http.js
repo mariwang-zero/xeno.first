@@ -77,6 +77,7 @@ export const api = {
   registerFolders: names => post('/admin/folders/register', { names }),
   saveSettings: s => post('/admin/settings', s),
   resetDemo: async () => true,
+  requestBoard: () => get('/requests/board'),
   // 매뉴얼 폴더 (서버가 NAS 공유 폴더를 읽고 쓴다)
   folderStatus: () => get('/admin/folder'),
   connectFolder: async () => null,

@@ -69,7 +69,8 @@ async function reset() {
     <div class="topbar-inner">
       <router-link to="/" class="brand"><span class="brand-mark">AI</span>매뉴얼 협업시스템</router-link>
       <nav class="nav">
-        <router-link to="/" :class="{ active: route.path === '/' || route.path.startsWith('/products') }">제품</router-link>
+        <router-link to="/" :class="{ active: route.path === '/' }">요청 현황</router-link>
+        <router-link to="/products" :class="{ active: route.path.startsWith('/products') }">제품</router-link>
         <router-link to="/requests">내 요청함<span v-if="session.todoCount" class="badge">{{ session.todoCount }}</span></router-link>
         <router-link v-if="session.user.admin" to="/admin">관리</router-link>
       </nav>

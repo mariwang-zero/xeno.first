@@ -310,6 +310,7 @@ const simple = [
   ['POST', '/docs/:id/deploy', ({ id }, b) => api.deploy(id, b.summary)],
   ['GET', '/docs/:id/history', ({ id }) => api.history(id)],
   ['GET', '/requests/mine', () => api.myRequests()],
+  ['GET', '/requests/board', () => api.requestBoard()],
   ['PATCH', '/requests/:id', ({ id }, b) => api.updateRequest(id, b)],
   ['DELETE', '/requests/:id', ({ id }) => api.cancelRequest(id)],
   ['POST', '/requests/:id/start', ({ id }) => api.startRequest(id)],

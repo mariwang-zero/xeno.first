@@ -42,7 +42,7 @@ async function run() {
   <main class="page narrow" v-if="p">
     <div class="page-head">
       <div class="grow">
-        <div class="eyebrow crumbs"><router-link to="/">제품</router-link> / <router-link :to="'/products/' + p.id">{{ p.name }}</router-link> / <span>AI 초안 생성</span></div>
+        <div class="eyebrow crumbs"><router-link to="/products">제품</router-link> / <router-link :to="'/products/' + p.id">{{ p.name }}</router-link> / <span>AI 초안 생성</span></div>
         <h1>AI 초안 생성</h1>
         <ol class="wiz small"><li class="on">1 자료 등록</li><li>2 변경 추천 검토</li></ol>
       </div>

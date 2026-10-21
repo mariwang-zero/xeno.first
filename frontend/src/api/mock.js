@@ -562,6 +562,24 @@ export const api = {
     })
   },
 
+  // 요청 현황판: 모든 수정 요청과 최근 처리 기록. 묶고 거르는 일은 화면이 한다
+  async requestBoard() {
+    requireMe()
+    const list = db.requests.filter(r => r.kind === 'request')
+    const events = []
+    for (const r of list) {
+      const t = `#${r.no} ${r.title}`
+      if (r.createdAt) events.push({ at: r.createdAt, reqId: r.id, docId: r.docId, kind: 'requested', who: user(r.requesterId), text: `${t} 요청 → ${user(r.assigneeId)?.name}` })
+      if (r.startedAt) events.push({ at: r.startedAt, reqId: r.id, docId: r.docId, kind: 'checking', who: user(r.assigneeId), text: `${t} 확인 시작` })
+      if (r.doneAt) events.push({ at: r.doneAt, reqId: r.id, docId: r.docId, kind: 'done', who: user(r.assigneeId), text: `${t} 수정 완료${r.resolution ? ': ' + r.resolution : ''}` })
+      if (r.closedAt) events.push({ at: r.closedAt, reqId: r.id, docId: r.docId, kind: 'closed', who: user(r.requesterId), text: `${t} 확인 완료` })
+    }
+    return wait({
+      requests: list.map(decorateReq),
+      events: events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 12),
+    })
+  },
+
   // ── S09 버전·변경 이력 ────────────────────────────
   async history(docId) {
     const d = docOf(docId)

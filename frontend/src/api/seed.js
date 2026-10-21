@@ -188,6 +188,11 @@ export function buildSeed() {
     R({ id: 'q6', no: 6, docId: 'd1', page: 3, kind: 'memo', anchor: { type: 'text', blockId: 'p3-b2', quote: '4K UHD' }, title: '', body: '마케팅 자료의 표기(4K Ultra HD)와 맞출지 검토', requesterId: 'u3', assigneeId: null, status: 'closed', createdAt: at(5, 16) }),
     R({ id: 'q7', no: 7, docId: 'd1', page: 6, kind: 'ai', anchor: { type: 'text', blockId: 'p6-b6', quote: '보증 기간은 구입일로부터 1년입니다.' }, title: '', body: 'EU 판매 시 보증 기간 표기 기준이 따로 있나?', answer: '등록된 자료에는 EU 판매용 보증 기간의 근거가 없습니다. 판매 지역별 기준은 영업·품질 담당 확인이 필요합니다. (AI는 등록된 자료만 봅니다)', requesterId: 'u1', assigneeId: null, status: 'closed', createdAt: at(2, 11) }),
     R({ id: 'q8', no: 1, docId: 'd3', page: 3, anchor: { type: 'text', blockId: 'p3-b2', quote: '4시간' }, title: '사용 시간 시험값 반영', body: '시험 결과 4.5시간입니다.', reason: '시험 결과', doneWhen: '규격표 수정', requesterId: 'u2', assigneeId: 'u6', status: 'closed', createdAt: at(10), startedAt: at(9), doneAt: at(8), closedAt: at(7), resolution: '사용 시간 4시간 → 4.5시간' }),
+    R({ id: 'q9', no: 2, docId: 'd3', page: 3, anchor: { type: 'text', blockId: 'p3-b2', quote: '45,000 lux' }, title: '밝기 값 시험성적서와 대조', body: '규격표 밝기 값이 최신 시험성적서와 같은지 확인해 주세요.', reason: '시험 결과', doneWhen: '시험성적서 값으로 규격표 확정', due: day(2), requesterId: 'u3', assigneeId: 'u8', status: 'checking', createdAt: at(2, 13), startedAt: at(1, 9) }),
+    R({ id: 'q10', no: 1, docId: 'd4', page: 3, anchor: { type: 'text', blockId: 'p3-b2', quote: '2개 (교체형)' }, title: '신규 배터리 사양 확정', body: 'XD Light4는 내장형 배터리로 바뀝니다. 용량과 사용 시간을 확정해 주세요.', reason: '생산 변경', doneWhen: '배터리 사양과 사용 시간을 규격표에 반영', due: day(4), requesterId: 'u2', assigneeId: 'u6', status: 'requested', createdAt: at(14, 10) }),
+    R({ id: 'q11', no: 2, docId: 'd4', page: 1, anchor: { type: 'area', rect: { x: 0.08, y: 0.3, w: 0.84, h: 0.4 } }, title: '신형 제품 사진 전달', body: 'XD Light4 실물 사진으로 교체할 수 있게 촬영본을 올려 주세요.', reason: '신규 제품', doneWhen: '제품 사진 교체', due: day(-1), requesterId: 'u2', assigneeId: 'u5', status: 'done', createdAt: at(12, 15), startedAt: at(10, 9), doneAt: at(0, 9, 30), resolution: '촬영본 3장 참고자료에 등록, 정면 사진으로 교체' }),
+    R({ id: 'q12', no: 3, docId: 'd4', page: 2, anchor: { type: 'text', blockId: 'p2-b2', quote: 'LED를 눈으로 직접 바라보지 마십시오.' }, title: 'LED 경고 문구 인증 기준 확인', body: '광출력이 높아져서 경고 문구 기준이 바뀌는지 확인 부탁드립니다.', reason: '인증 문구 확인', doneWhen: '경고 문구 유지 또는 수정 결정', due: day(-3), requesterId: 'u2', assigneeId: 'u8', status: 'requested', createdAt: at(3, 11) }),
+    R({ id: 'q13', no: 8, docId: 'd1', page: 3, anchor: { type: 'area', rect: { x: 0.08, y: 0.5, w: 0.84, h: 0.35 } }, title: 'Viewer 화면 캡처 최신화', body: 'Viewer 2.1 화면으로 캡처를 바꿔 주세요.', reason: '기능 추가', doneWhen: '새 화면 캡처 반영', due: day(-1), requesterId: 'u1', assigneeId: 'u7', status: 'checking', createdAt: at(3, 15), startedAt: at(2, 10) }),
   ]
 
   const A = (docId, daysAgo, hh, userId, text, change) => ({ docId, at: at(daysAgo, hh), userId, text, change: !!change })
@@ -226,7 +231,7 @@ export function buildSeed() {
   ]
 
   return {
-    seq: { doc: 5, version: 9, file: 5, run: 2, req: 8, notif: notifications.length },
+    seq: { doc: 5, version: 9, file: 5, run: 2, req: 13, notif: notifications.length },
     settings: {
       reviewFlow: true,
       sections: [
