@@ -149,6 +149,28 @@ export function buildSeed() {
   products.find(x => x.id === 'p8').currentVersionId = 'v3'
   products.find(x => x.id === 'p5').currentVersionId = 'v7'
 
+  // 실제 최신 한글 매뉴얼 (제품 메뉴얼_복사본 폴더, 2026-10-21 기준). 파일 이름·날짜·크기만 쓰고 본문은 예시 문장이다
+  const latestKo = [
+    ['p1', 'Looks 한글매뉴얼-260915.docx', '2026-09-28', 3.4],
+    ['p2', 'L2S14C MANUAL-20260914(한글)-V2.2.docx', '2026-09-15', 5.7],
+    ['p4', 'L2S15 MANUAL-20260914(한글)-V2_1 (화상주의).doc', '2026-09-14', 20.9],
+    ['p3', 'L2SW MANUAL(한글)-20261002.doc', '2026-10-02', 14.4],
+    ['p10', 'L2SWE MANUAL(한글)-V1_0_20260914.doc', '2026-09-14', 6.8],
+    ['p11', 'L2SX5 MANUAL(한글)-20261002.doc', '2026-10-02', 19.4],
+    ['p5', 'L2SX6 MANUAL-20261002(한글).doc', '2026-10-14', 9.3],
+    ['p6', 'XD LIGHT MANUAL(한글)-V2_1_260915.doc', '2026-09-15', 22.2],
+    ['p7', 'XD LIGHT4 MANUAL(KO)_261002.doc', '2026-10-02', 11.8],
+    ['p9', 'LooksCAM-LT 사용자 설명서(한글)__V0_1 260915.docx', '2026-10-02', 6.6],
+    ['p8', '260915 LooksCAM2 사용자 설명서(한글)_초안수정_V0_0.docx', '2026-09-28', 8.1],
+  ]
+  latestKo.forEach(([pid, file, date, size], i) => {
+    const pr = products.find(x => x.id === pid)
+    const docId = 'dk' + (i + 1), vId = 'vk' + (i + 1), when = date + 'T09:00:00'
+    docs.push({ id: docId, productId: pid, title: `${pr.name} KO 사용설명서 (최신 한글판)`, status: 'deploy', held: null, ownerId: 'u1', lock: null, createdAt: when, pages: pr.categoryId === 'c3' ? cameraManual(pr.name) : lightManual(pr.name), manualLeft: [] })
+    versions.push({ id: vId, docId, kind: 'final', name: file, at: when, userId: 'u1', note: '최신 한글판 (제품 메뉴얼_복사본)', size })
+    pr.currentVersionId = vId
+  })
+
   const files = [
     { id: 'f1', docId: 'd1', name: 'LooksCAM LT 사양서.pdf', size: 1.2, at: at(9, 9, 20), userId: 'u1' },
     { id: 'f2', docId: 'd1', name: 'LooksCAM LT 제품 사진.jpg', size: 3.4, at: at(9, 9, 21), userId: 'u1' },
