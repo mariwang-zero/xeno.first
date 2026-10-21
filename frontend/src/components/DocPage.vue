@@ -76,13 +76,13 @@ const box = d => ({ left: Math.min(d.x0, d.x1) * 100 + '%', top: Math.min(d.y0, 
 </template>
 
 <style scoped>
-.paper { position: relative; background: #fff; color: #1b1b1b; aspect-ratio: 1 / 1.414; padding: 8% 10%; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.06); font-size: 13.5px; line-height: 1.7; display: flex; flex-direction: column; gap: 10px; user-select: text; }
+.paper { position: relative; width: 100%; box-sizing: border-box; background: #fff; color: #1b1b1b; aspect-ratio: 1 / 1.414; padding: 8% 10%; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.06); font-size: 13.5px; line-height: 1.7; display: flex; flex-direction: column; gap: 10px; user-select: text; }
 .paper.picking { cursor: crosshair; user-select: none; touch-action: none; }
 .paper.picking > *:not(.drag):not(.area-mark) { pointer-events: none; }
 h4 { margin: 8px 0 0; font-size: 15px; font-weight: 700; display: flex; gap: 8px; align-items: center; }
 p { margin: 0; }
 table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
-th, td { border: 1px solid #c9ccd3; padding: 4px 8px; text-align: left; }
+th, td { border: 1px solid #c9ccd3; padding: 4px 8px; text-align: left; white-space: pre-line; vertical-align: top; }
 th { background: #f1f2f5; font-weight: 600; }
 .img { flex: 1; min-height: 80px; max-height: 42%; border: 1px dashed #b9bcc6; background: repeating-linear-gradient(45deg, #f6f7f9 0 10px, #eef0f3 10px 20px); display: grid; place-items: center; color: #6b7080; font-size: 12px; border-radius: 3px; }
 mark { background: transparent; color: inherit; cursor: pointer; border-radius: 2px; text-decoration: underline 2px; text-underline-offset: 3px; }

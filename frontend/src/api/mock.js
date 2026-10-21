@@ -1,10 +1,10 @@
 // 가짜 API. 백엔드가 생기면 http.js 가 같은 함수 이름·같은 응답 모양으로 대신합니다.
-// 데이터는 이 브라우저에만 저장됩니다(localStorage). "예시 데이터로 되돌리기"로 처음 상태로 돌아갑니다.
+// 데이터는 이 브라우저에만 저장됩니다(localStorage). "처음 상태로 되돌리기"로 처음 상태로 돌아갑니다.
 import { buildSeed, toLocalIso, applyItems, cameraManual, lightManual } from './seed.js'
 import { DOC_STATUS, REQ_STATUS, can, isOverdue, fmtRev } from '../lib/status.js'
 import { productNameProblem } from '../lib/folders.js'
 
-const KEY = 'manual-system-demo-v5'
+const KEY = 'manual-system-demo-v6'
 let db = load()
 let me = null
 
@@ -577,6 +577,8 @@ export const api = {
     return wait({
       requests: list.map(decorateReq),
       events: events.sort((a, b) => b.at.localeCompare(a.at)).slice(0, 12),
+      // 요청이 없을 때 바로 들어갈 수 있게, 배포 전 단계의 작업
+      working: db.docs.filter(d => d.status !== 'deploy').map(d => ({ id: d.id, title: d.title, status: d.status, product: productOf(d.productId).name })),
     })
   },
 

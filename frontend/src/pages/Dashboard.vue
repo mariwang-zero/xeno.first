@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { api } from '../api/index.js'
 import { session } from '../store.js'
 import Chip from '../components/Chip.vue'
-import { REQ_STATUS, REQ_STEPS, daysBetween, fmtDate, fmtDateTime } from '../lib/status.js'
+import { DOC_STATUS, REQ_STATUS, REQ_STEPS, daysBetween, fmtDate, fmtDateTime } from '../lib/status.js'
 
 // 요청 현황: 수정 요청을 한 화면에서 보고, 숫자·막대를 누르면 아래 목록이 그 조건으로 걸러진다
 const data = ref(null)
@@ -172,7 +172,11 @@ const EV = { requested: '요청', checking: '시작', done: '수정 완료', clo
             </tbody>
           </table>
         </div>
-        <div v-else class="empty">조건에 맞는 요청이 없습니다.</div>
+        <div v-else-if="data.requests.length" class="empty">조건에 맞는 요청이 없습니다.</div>
+        <div v-else class="empty">
+          아직 요청이 없습니다. 진행 중인 문서를 열고 본문에서 글자를 고르거나 영역을 그려 수정 요청을 남겨 보세요.
+          <div v-for="w in data.working || []" :key="w.id" class="start"><router-link :to="'/docs/' + w.id">{{ w.title }}</router-link> <span class="xs muted">· {{ w.product }} · {{ DOC_STATUS[w.status] || w.status }}</span></div>
+        </div>
       </section>
 
       <section class="panel">
@@ -233,4 +237,5 @@ tr.mine.stalled td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
 .ev { cursor: pointer; text-align: left; }
 @media (max-width: 600px) { .bar-row { grid-template-columns: 84px 1fr 70px; } }
 .bar-row > .num { white-space: nowrap; }
+.start { margin-top: 10px; }
 </style>

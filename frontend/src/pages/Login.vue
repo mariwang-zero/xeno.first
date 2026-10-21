@@ -6,7 +6,7 @@ import { refreshMe } from '../store.js'
 
 const router = useRouter()
 const route = useRoute()
-const username = ref(isDemo ? 'lkh' : '')
+const username = ref(isDemo ? 'manual1' : '')
 const password = ref(isDemo ? 'demo' : '')
 const error = ref('')
 
@@ -32,7 +32,7 @@ async function submit() {
         <label class="field">비밀번호<input id="l-pass" type="password" v-model="password" autocomplete="current-password" /></label>
         <button class="btn primary" type="submit">로그인</button>
         <p v-if="error" class="err small" role="alert">{{ error }}</p>
-        <p v-if="isDemo" class="muted xs">데모: 아이디 lkh(이경환) 그대로 로그인하세요. 로그인 뒤 위쪽 "보는 사람"에서 다른 사람으로 바꿔 볼 수 있습니다.</p>
+        <p v-if="isDemo" class="muted xs">데모: 아이디 manual1(매뉴얼 담당 A) 그대로 로그인하세요. 로그인 뒤 위쪽 "보는 사람"에서 다른 사람으로 바꿔 볼 수 있습니다.</p>
       </div>
     </form>
   </main>

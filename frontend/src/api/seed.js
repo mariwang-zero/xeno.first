@@ -1,5 +1,5 @@
-// 데모용 예시 데이터. 제품 목록은 실제 제품군(2026-10), 시나리오는 과제계획서 7장(LooksCAM3 첫 시험, 데모에서는 LooksCAM LT)을 따릅니다.
-// 매뉴얼 본문은 화면을 보여 주기 위한 예시 문장이며 실제 매뉴얼 내용이 아닙니다.
+// 데모(시연)용 데이터. 제품과 최신 한글판 파일 이름은 실제(2026-10), 사람 이름은 가명입니다.
+// 매뉴얼 본문은 LooksCAM LT 만 실제 문서이고(공개 허락), 나머지 제품은 안내 문장만 둡니다.
 
 export function toLocalIso(d) {
   const p = n => String(n).padStart(2, '0')
@@ -73,32 +73,22 @@ export function applyItems(pgs, items) {
   return { pages: out, failed }
 }
 
-// LooksCAM LT 첫 시험 때 AI가 낸 추천 목록 (예시)
-function looksCam3Items() {
-  return [
-    { no: 1, page: 1, kind: 'text', note: 'ai', before: 'LooksCAM2는 의료용', after: 'LooksCAM LT는 의료용', summary: '제품명을 LooksCAM LT로 변경', basis: 'LooksCAM LT 사양서 1p', checked: true },
-    { no: 2, page: 1, kind: 'text', note: 'ai', before: '본 설명서는 LooksCAM2의', after: '본 설명서는 LooksCAM LT의', summary: '제품명을 LooksCAM LT로 변경', basis: 'LooksCAM LT 사양서 1p', checked: true },
-    { no: 3, page: 1, kind: 'image', note: 'manual', before: '제품 전체 사진', after: '', summary: '구형 사진을 신형 제품 사진으로 교체', basis: 'LooksCAM LT 제품 사진.jpg', checked: false },
-    { no: 4, page: 2, kind: 'text', note: 'check', cert: true, before: '배터리는 지정된 충전기로만 충전하십시오.', after: '(문장 삭제)', summary: 'USB 전원 제품이라 배터리 문구 삭제 제안. 인증 문구가 있는 절이라 확인 필요', basis: 'LooksCAM LT 사양서 3p', checked: false },
-    { no: 5, page: 3, kind: 'text', note: 'ai', before: '1080p Full HD 영상 녹화를 지원합니다.', after: '4K UHD 영상 녹화를 지원합니다.', summary: '기능 설명을 신규 사양에 맞게 수정', basis: 'LooksCAM LT 사양서 2p', checked: true },
-    { no: 6, page: 3, kind: 'text', note: 'ai', op: 'add', anchor: 'Viewer 프로그램에서', before: '', after: 'Viewer의 Recording 버튼으로 영상을 PC에 바로 저장할 수 있습니다.', summary: '신규 기능 설명 문단 추가', basis: '작성 참고 내용 2번', checked: true },
-    { no: 7, page: 3, kind: 'table', note: 'ai', before: 'USB 케이블 (1.5m)', after: 'USB-C 케이블 (2m)', summary: '구성품 표의 케이블 사양 변경', basis: 'LooksCAM LT 구성품 목록.xlsx', checked: true },
-    { no: 8, page: 4, kind: 'image', note: 'manual', before: '루페 장착 그림', after: '', summary: '장착 그림을 신형 클립으로 교체', basis: 'LooksCAM LT 제품 사진.jpg', checked: false },
-    { no: 9, page: 5, kind: 'table', note: 'ai', before: '1920 × 1080', after: '3840 × 2160', summary: '해상도 값을 신규 자료 기준으로 변경', basis: 'LooksCAM LT 사양서 2p', checked: true },
-    { no: 10, page: 5, kind: 'table', note: 'check', before: '350 mA', after: '420 mA', summary: '소비전류 값 변경 제안. 사양서(420 mA)와 시험성적서(400 mA)가 서로 다름', basis: 'LooksCAM LT 사양서 2p, EMC 시험성적서 5p', checked: false },
-  ]
-}
+import { LT_PAGES } from './ltManual.js'
+
+// 시연용 데이터: 11개 제품은 배포된 최신 한글판만 등록되어 있고, LooksCAM LT 만 다음 개정이 진행 중이다.
+// 공개 데모라서 LooksCAM LT 외 매뉴얼 본문은 싣지 않는다(실제 본문은 사내 서버에서만). 사람 이름은 가명.
+const notice = name => pages([[h('본문 미리보기 안내'), p(`${name} 최신 한글판은 공개 데모에 본문을 싣지 않았습니다.`), p('사내 서버에서는 등록한 워드 파일의 본문이 여기에 보입니다. 데모에서 본문을 보려면 LooksCAM LT 를 열어 주세요.')]])
 
 export function buildSeed() {
   const users = [
-    { id: 'u1', username: 'lkh', name: '이경환', dept: '매뉴얼', role: 'owner', admin: true, active: true },
-    { id: 'u2', username: 'jhs', name: '전현수', dept: '매뉴얼', role: 'owner', admin: false, active: true },
-    { id: 'u3', username: 'lwh', name: '이왕희', dept: '매뉴얼', role: 'reviewer', admin: false, active: true },
-    { id: 'u4', username: 'final', name: '최종 검토자(예시)', dept: '품질', role: 'final', admin: false, active: true },
-    { id: 'u5', username: 'mech', name: '기구 담당(예시)', dept: '기구', role: 'user', admin: false, active: true },
-    { id: 'u6', username: 'elec', name: '전자 담당(예시)', dept: '전자', role: 'user', admin: false, active: true },
-    { id: 'u7', username: 'sw', name: 'SW 담당(예시)', dept: '소프트웨어', role: 'user', admin: false, active: true },
-    { id: 'u8', username: 'qa', name: '품질 담당(예시)', dept: '품질', role: 'reviewer', admin: false, active: true },
+    { id: 'u1', username: 'manual1', name: '매뉴얼 담당 A', dept: '매뉴얼', role: 'owner', admin: true, active: true },
+    { id: 'u2', username: 'manual2', name: '매뉴얼 담당 B', dept: '매뉴얼', role: 'owner', admin: false, active: true },
+    { id: 'u3', username: 'review1', name: '검토 담당 C', dept: '매뉴얼', role: 'reviewer', admin: false, active: true },
+    { id: 'u4', username: 'final', name: '최종 검토자', dept: '품질', role: 'final', admin: false, active: true },
+    { id: 'u5', username: 'mech', name: '기구 담당', dept: '기구', role: 'user', admin: false, active: true },
+    { id: 'u6', username: 'elec', name: '전자 담당', dept: '전자', role: 'user', admin: false, active: true },
+    { id: 'u7', username: 'sw', name: 'SW 담당', dept: '소프트웨어', role: 'user', admin: false, active: true },
+    { id: 'u8', username: 'qa', name: '품질 담당', dept: '품질', role: 'reviewer', admin: false, active: true },
   ]
 
   const categories = [
@@ -106,50 +96,23 @@ export function buildSeed() {
     { id: 'c2', name: '라이트', order: 2 },
     { id: 'c3', name: '카메라', order: 3 },
   ]
-  const P = (id, categoryId, name, docNo, rev, order) => ({ id, categoryId, name, docNo, rev, order, hidden: false, currentVersionId: null })
+  const P = (id, categoryId, name, docNo, order) => ({ id, categoryId, name, docNo, rev: 1, order, hidden: false, currentVersionId: null })
   // 제품군 (2026-10 기준). 제품명이 그대로 매뉴얼 폴더 이름이 된다. 새 제품은 관리 화면에서 추가한다
   const products = [
-    P('p1', 'c1', 'Looks', 'LS-UM-KO', 4, 1),
-    P('p2', 'c2', 'L2S14C', 'L2S14C-UM-KO', 2, 1),
-    P('p4', 'c2', 'L2S15', 'L2S15-UM-KO', 3, 2),
-    P('p3', 'c2', 'L2SW', 'L2SW-UM-KO', 0, 3),
-    P('p10', 'c2', 'L2SWE', 'L2SWE-UM-KO', 1, 4),
-    P('p11', 'c2', 'L2SX5', 'L2SX5-UM-KO', 2, 5),
-    P('p5', 'c2', 'L2SX6', 'L2SX6-UM-KO', 1, 6),
-    P('p6', 'c2', 'XD Light', 'XDL-UM-KO', 5, 7),
-    P('p7', 'c2', 'XD Light4', 'XDL4-UM-KO', 0, 8),
-    P('p9', 'c3', 'LooksCAM LT', 'LCLT-UM-KO', 0, 1),
-    P('p8', 'c3', 'LooksCAM2', 'LC2-UM-KO', 3, 2),
+    P('p1', 'c1', 'Looks', 'LS-UM-KO', 1),
+    P('p2', 'c2', 'L2S14C', 'L2S14C-UM-KO', 1),
+    P('p4', 'c2', 'L2S15', 'L2S15-UM-KO', 2),
+    P('p3', 'c2', 'L2SW', 'L2SW-UM-KO', 3),
+    P('p10', 'c2', 'L2SWE', 'L2SWE-UM-KO', 4),
+    P('p11', 'c2', 'L2SX5', 'L2SX5-UM-KO', 5),
+    P('p5', 'c2', 'L2SX6', 'L2SX6-UM-KO', 6),
+    P('p6', 'c2', 'XD Light', 'XDL-UM-KO', 7),
+    P('p7', 'c2', 'XD Light4', 'XDL4-UM-KO', 8),
+    P('p9', 'c3', 'LooksCAM LT', 'LCLT-UM-KO', 1),
+    P('p8', 'c3', 'LooksCAM2', 'LC2-UM-KO', 2),
   ]
 
-  const cam2 = cameraManual('LooksCAM2')
-  const r1Items = looksCam3Items()
-  const cam3 = applyItems(cam2, r1Items.filter(i => i.checked)).pages
-
-  const docs = [
-    { id: 'd1', productId: 'p9', title: 'LooksCAM LT KO 사용설명서 신규 작성', status: 'progress', held: null, ownerId: 'u1', lock: null, createdAt: at(9, 9), pages: cam3, manualLeft: [3, 8] },
-    { id: 'd2', productId: 'p8', title: 'LooksCAM2 KO 사용설명서 Rev.03 개정', status: 'deploy', held: null, ownerId: 'u1', lock: null, createdAt: at(60), pages: cam2, manualLeft: [] },
-    { id: 'd3', productId: 'p5', title: 'L2SX6 KO 사용설명서 Rev.02 개정', status: 'review', held: null, ownerId: 'u2', lock: null, createdAt: at(20), pages: lightManual('L2SX6'), manualLeft: [] },
-    { id: 'd4', productId: 'p7', title: 'XD Light4 KO 사용설명서 신규 작성', status: 'progress', held: { reason: '신규 배터리 사양 결정 대기', at: at(4), userId: 'u2' }, ownerId: 'u2', lock: { userId: 'u2', at: at(4, 15) }, createdAt: at(15), pages: lightManual('XD Light4'), manualLeft: [] },
-    { id: 'd5', productId: 'p3', title: 'L2SW KO 사용설명서 신규 작성', status: 'ai', held: null, ownerId: 'u2', lock: null, createdAt: at(0, 9, 10), pages: null, manualLeft: [] },
-  ]
-
-  const V = (id, docId, kind, name, daysAgo, userId, note, size) => ({ id, docId, kind, name, at: at(daysAgo, 11), userId, note, size })
-  const versions = [
-    V('v1', 'd2', 'original', 'LC2-UM-KO_Rev02.docx', 62, 'u1', 'Rev.02 원본 등록', 4.1),
-    V('v2', 'd2', 'review', 'LC2-UM-KO_Rev03_검토본.docx', 40, 'u1', '편집본 올림: USB 케이블 길이 변경', 4.2),
-    V('v3', 'd2', 'final', 'LC2-UM-KO_Rev03.docx', 31, 'u4', '최종 검토 완료', 4.2),
-    V('v4', 'd1', 'original', 'LC2-UM-KO_Rev03.docx (기존 레퍼런스)', 9, 'u1', 'AI 초안의 기준 문서', 4.2),
-    V('v5', 'd1', 'ai', 'LCLT-UM-KO_AI초안.docx', 9, 'u1', 'AI 추천 6건 반영', 4.3),
-    V('v6', 'd1', 'review', 'LCLT-UM-KO_검토본_1.docx', 3, 'u5', '편집본 올림: 클립 마운트 명칭 정리', 4.4),
-    V('v7', 'd3', 'original', 'L2SX6-UM-KO_Rev01.docx', 21, 'u2', '원본 등록', 2.2),
-    V('v8', 'd3', 'review', 'L2SX6-UM-KO_Rev02_검토본.docx', 2, 'u2', '검토 요청 시점 버전', 2.3),
-    V('v9', 'd4', 'original', 'XDL-UM-KO_Rev05.docx (기존 레퍼런스)', 15, 'u2', '기준 문서', 2.0),
-  ]
-  products.find(x => x.id === 'p8').currentVersionId = 'v3'
-  products.find(x => x.id === 'p5').currentVersionId = 'v7'
-
-  // 실제 최신 한글 매뉴얼 (제품 메뉴얼_복사본 폴더, 2026-10-21 기준). 파일 이름·날짜·크기만 쓰고 본문은 예시 문장이다
+  // 배포된 최신 한글판 (제품 메뉴얼_복사본 폴더, 2026-10-21 기준): 제품마다 Rev.01 로 등록
   const latestKo = [
     ['p1', 'Looks 한글매뉴얼-260915.docx', '2026-09-28', 3.4],
     ['p2', 'L2S14C MANUAL-20260914(한글)-V2.2.docx', '2026-09-15', 5.7],
@@ -163,97 +126,27 @@ export function buildSeed() {
     ['p9', 'LooksCAM-LT 사용자 설명서(한글)__V0_1 260915.docx', '2026-10-02', 6.6],
     ['p8', '260915 LooksCAM2 사용자 설명서(한글)_초안수정_V0_0.docx', '2026-09-28', 8.1],
   ]
+  const docs = [], versions = [], revs = [], activity = []
   latestKo.forEach(([pid, file, date, size], i) => {
     const pr = products.find(x => x.id === pid)
     const docId = 'dk' + (i + 1), vId = 'vk' + (i + 1), when = date + 'T09:00:00'
-    docs.push({ id: docId, productId: pid, title: `${pr.name} KO 사용설명서 (최신 한글판)`, status: 'deploy', held: null, ownerId: 'u1', lock: null, createdAt: when, pages: pr.categoryId === 'c3' ? cameraManual(pr.name) : lightManual(pr.name), manualLeft: [] })
-    versions.push({ id: vId, docId, kind: 'final', name: file, at: when, userId: 'u1', note: '최신 한글판 (제품 메뉴얼_복사본)', size })
+    docs.push({ id: docId, productId: pid, title: `${pr.name} KO 사용설명서 Rev.01 (최신 한글판)`, status: 'deploy', held: null, ownerId: 'u1', lock: null, createdAt: when, pages: pid === 'p9' ? LT_PAGES : notice(pr.name), manualLeft: [] })
+    versions.push({ id: vId, docId, kind: 'final', name: file, at: when, userId: 'u1', note: '최신 한글판 등록', size })
+    revs.push({ productId: pid, rev: 1, summary: `최신 한글판 등록: ${file}`, at: date, userId: 'u1' })
+    activity.push({ docId, at: when, userId: 'u1', text: `최신 한글판 등록: ${file}`, change: true })
     pr.currentVersionId = vId
   })
 
-  const files = [
-    { id: 'f1', docId: 'd1', name: 'LooksCAM LT 사양서.pdf', size: 1.2, at: at(9, 9, 20), userId: 'u1' },
-    { id: 'f2', docId: 'd1', name: 'LooksCAM LT 제품 사진.jpg', size: 3.4, at: at(9, 9, 21), userId: 'u1' },
-    { id: 'f3', docId: 'd1', name: 'LooksCAM LT 구성품 목록.xlsx', size: 0.1, at: at(9, 9, 22), userId: 'u1' },
-    { id: 'f4', docId: 'd1', name: 'EMC 시험성적서.pdf', size: 2.7, at: at(9, 9, 23), userId: 'u1' },
-    { id: 'f5', docId: 'd5', name: 'L2SW 사양서.pdf', size: 0.9, at: at(0, 9, 12), userId: 'u2' },
-  ]
-
-  const aiRuns = [
-    {
-      id: 'r1', docId: 'd1', userId: 'u1', at: at(9, 9, 30), status: 'applied', appliedAt: at(9, 10, 5),
-      inputs: { reference: 'LC2-UM-KO_Rev03.docx', sources: ['LooksCAM LT 사양서.pdf', 'LooksCAM LT 제품 사진.jpg', 'LooksCAM LT 구성품 목록.xlsx', 'EMC 시험성적서.pdf'], mustInclude: '1. 제품명은 LooksCAM LT로 통일\n2. Viewer Recording 기능 설명 추가', extra: '이미지는 바꾸지 말 것' },
-      items: r1Items, failures: [], result: { applied: 6, failed: [], manual: 2 },
-    },
-    {
-      id: 'r2', docId: 'd5', userId: 'u2', at: at(0, 9, 15), status: 'ready', appliedAt: null,
-      inputs: { reference: 'L2SX6-UM-KO_Rev01.docx', sources: ['L2SW 사양서.pdf', '제품 사진.zip'], mustInclude: '밝기 3단 조절', extra: '' },
-      items: [
-        { no: 1, page: 1, kind: 'text', note: 'ai', before: 'L2SX6는 루페에', after: 'L2SW는 루페에', summary: '제품명을 L2SW로 변경', basis: 'L2SW 사양서 1p', checked: true },
-        { no: 2, page: 1, kind: 'image', note: 'manual', before: '제품 전체 사진', after: '', summary: '제품 사진 교체', basis: '(사진 자료 없음)', checked: false },
-        { no: 3, page: 2, kind: 'text', note: 'ai', before: '밝기를 2단으로', after: '밝기를 3단으로', summary: 'LED 밝기 조절 방법 수정', basis: '작성 참고 내용', checked: true },
-        { no: 4, page: 3, kind: 'table', note: 'ai', before: '45,000 lux', after: '60,000 lux', summary: '밝기 값 변경', basis: 'L2SW 사양서 2p', checked: true },
-        { no: 5, page: 3, kind: 'table', note: 'check', before: '2개 (교체형)', after: '1개 (내장형)', summary: '배터리 사양 변경 제안. 근거 자료 부족', basis: '(근거 없음)', checked: false },
-      ],
-      failures: [{ file: '제품 사진.zip', reason: '압축 파일은 읽을 수 없습니다. 사진을 따로 올려 주세요.' }],
-      result: null,
-    },
-  ]
-
-  const R = o => ({ kind: 'request', reason: '', doneWhen: '', due: null, resolution: '', comments: [], startedAt: null, doneAt: null, closedAt: null, ...o })
-  const requests = [
-    R({ id: 'q1', no: 1, docId: 'd1', page: 5, anchor: { type: 'text', blockId: 'p5-b2', quote: '350 mA' }, title: '소비전류 값 확인', body: '사양서는 420 mA, EMC 시험성적서는 400 mA입니다. 최종 값을 확인해 주세요.', reason: '자료 불일치', doneWhen: '확정된 값으로 규격표 수정', due: day(-3), requesterId: 'u1', assigneeId: 'u6', status: 'checking', createdAt: at(8, 14), startedAt: at(6, 10) }),
-    R({ id: 'q2', no: 2, docId: 'd1', page: 1, anchor: { type: 'area', rect: { x: 0.08, y: 0.15, w: 0.84, h: 0.4 } }, title: '제품 사진 신형으로 교체', body: 'AI 추천 3번 항목(수작업 권장)입니다. 신형 사진으로 바꿔 주세요.', reason: '신규 제품', doneWhen: '신형 제품 사진 반영', due: day(2), requesterId: 'u1', assigneeId: 'u5', status: 'requested', createdAt: at(8, 14, 20) }),
-    R({ id: 'q3', no: 3, docId: 'd1', page: 2, anchor: { type: 'text', blockId: 'p2-b4', quote: '배터리는 지정된 충전기로만 충전하십시오.' }, title: '배터리 문구 삭제 여부', body: 'USB 전원 제품인데 배터리 문구가 남아 있습니다. 인증 문구가 있는 절이라 확인 부탁드립니다.', reason: '인증 문구 확인', doneWhen: '삭제 또는 유지 결정 후 반영', requesterId: 'u1', assigneeId: 'u8', status: 'done', createdAt: at(7, 11), startedAt: at(6, 9), doneAt: at(1, 16), resolution: 'USB 전원 제품이라 배터리 문구 삭제. 인증 문구 영향 없음 확인' }),
-    R({ id: 'q4', no: 4, docId: 'd1', page: 3, anchor: { type: 'text', blockId: 'p3-n6', quote: 'Recording 버튼' }, title: 'Recording 설명 보완', body: '저장 위치도 함께 적어 주세요.', reason: '기능 추가', doneWhen: '저장 폴더 위치 설명 추가', requesterId: 'u2', assigneeId: 'u7', status: 'closed', createdAt: at(7, 15), startedAt: at(6, 13), doneAt: at(5, 10), closedAt: at(4, 9), resolution: 'Viewer Recording 저장 폴더 위치 설명 추가' }),
-    R({ id: 'q5', no: 5, docId: 'd1', page: 4, anchor: { type: 'area', rect: { x: 0.08, y: 0.15, w: 0.84, h: 0.4 } }, title: '루페 장착 그림 교체', body: '신형 클립 마운트 그림으로 바꿔 주세요.', reason: '신규 제품', doneWhen: '장착 그림 교체', due: day(-5), requesterId: 'u2', assigneeId: 'u5', status: 'requested', createdAt: at(6, 10) }),
-    R({ id: 'q6', no: 6, docId: 'd1', page: 3, kind: 'memo', anchor: { type: 'text', blockId: 'p3-b2', quote: '4K UHD' }, title: '', body: '마케팅 자료의 표기(4K Ultra HD)와 맞출지 검토', requesterId: 'u3', assigneeId: null, status: 'closed', createdAt: at(5, 16) }),
-    R({ id: 'q7', no: 7, docId: 'd1', page: 6, kind: 'ai', anchor: { type: 'text', blockId: 'p6-b6', quote: '보증 기간은 구입일로부터 1년입니다.' }, title: '', body: 'EU 판매 시 보증 기간 표기 기준이 따로 있나?', answer: '등록된 자료에는 EU 판매용 보증 기간의 근거가 없습니다. 판매 지역별 기준은 영업·품질 담당 확인이 필요합니다. (AI는 등록된 자료만 봅니다)', requesterId: 'u1', assigneeId: null, status: 'closed', createdAt: at(2, 11) }),
-    R({ id: 'q8', no: 1, docId: 'd3', page: 3, anchor: { type: 'text', blockId: 'p3-b2', quote: '4시간' }, title: '사용 시간 시험값 반영', body: '시험 결과 4.5시간입니다.', reason: '시험 결과', doneWhen: '규격표 수정', requesterId: 'u2', assigneeId: 'u6', status: 'closed', createdAt: at(10), startedAt: at(9), doneAt: at(8), closedAt: at(7), resolution: '사용 시간 4시간 → 4.5시간' }),
-    R({ id: 'q9', no: 2, docId: 'd3', page: 3, anchor: { type: 'text', blockId: 'p3-b2', quote: '45,000 lux' }, title: '밝기 값 시험성적서와 대조', body: '규격표 밝기 값이 최신 시험성적서와 같은지 확인해 주세요.', reason: '시험 결과', doneWhen: '시험성적서 값으로 규격표 확정', due: day(2), requesterId: 'u3', assigneeId: 'u8', status: 'checking', createdAt: at(2, 13), startedAt: at(1, 9) }),
-    R({ id: 'q10', no: 1, docId: 'd4', page: 3, anchor: { type: 'text', blockId: 'p3-b2', quote: '2개 (교체형)' }, title: '신규 배터리 사양 확정', body: 'XD Light4는 내장형 배터리로 바뀝니다. 용량과 사용 시간을 확정해 주세요.', reason: '생산 변경', doneWhen: '배터리 사양과 사용 시간을 규격표에 반영', due: day(4), requesterId: 'u2', assigneeId: 'u6', status: 'requested', createdAt: at(14, 10) }),
-    R({ id: 'q11', no: 2, docId: 'd4', page: 1, anchor: { type: 'area', rect: { x: 0.08, y: 0.3, w: 0.84, h: 0.4 } }, title: '신형 제품 사진 전달', body: 'XD Light4 실물 사진으로 교체할 수 있게 촬영본을 올려 주세요.', reason: '신규 제품', doneWhen: '제품 사진 교체', due: day(-1), requesterId: 'u2', assigneeId: 'u5', status: 'done', createdAt: at(12, 15), startedAt: at(10, 9), doneAt: at(0, 9, 30), resolution: '촬영본 3장 참고자료에 등록, 정면 사진으로 교체' }),
-    R({ id: 'q12', no: 3, docId: 'd4', page: 2, anchor: { type: 'text', blockId: 'p2-b2', quote: 'LED를 눈으로 직접 바라보지 마십시오.' }, title: 'LED 경고 문구 인증 기준 확인', body: '광출력이 높아져서 경고 문구 기준이 바뀌는지 확인 부탁드립니다.', reason: '인증 문구 확인', doneWhen: '경고 문구 유지 또는 수정 결정', due: day(-3), requesterId: 'u2', assigneeId: 'u8', status: 'requested', createdAt: at(3, 11) }),
-    R({ id: 'q13', no: 8, docId: 'd1', page: 3, anchor: { type: 'area', rect: { x: 0.08, y: 0.5, w: 0.84, h: 0.35 } }, title: 'Viewer 화면 캡처 최신화', body: 'Viewer 2.1 화면으로 캡처를 바꿔 주세요.', reason: '기능 추가', doneWhen: '새 화면 캡처 반영', due: day(-1), requesterId: 'u1', assigneeId: 'u7', status: 'checking', createdAt: at(3, 15), startedAt: at(2, 10) }),
-  ]
-
-  const A = (docId, daysAgo, hh, userId, text, change) => ({ docId, at: at(daysAgo, hh), userId, text, change: !!change })
-  const activity = [
-    A('d2', 31, 11, 'u4', '최종 검토 완료', true),
-    A('d2', 30, 9, 'u4', '배포: Rev.03 (USB 케이블 길이 변경)', true),
-    A('d1', 9, 9, 'u1', '작업 시작: AI 초안 생성'),
-    A('d1', 9, 10, 'u1', 'AI 추천 10건 중 6건 반영, 이미지 2건 수작업으로 남김', true),
-    A('d1', 8, 14, 'u1', '수정 요청 #1 소비전류 값 확인 → 전자 담당(예시)'),
-    A('d1', 8, 14, 'u1', '수정 요청 #2 제품 사진 신형으로 교체 → 기구 담당(예시)'),
-    A('d1', 5, 10, 'u7', '수정 완료 #4: Viewer Recording 저장 폴더 위치 설명 추가', true),
-    A('d1', 3, 11, 'u5', '편집본 올림: 클립 마운트 명칭 정리', true),
-    A('d1', 1, 16, 'u8', '수정 완료 #3: USB 전원 제품이라 배터리 문구 삭제', true),
-    A('d3', 2, 11, 'u2', '검토 요청'),
-    A('d4', 4, 15, 'u2', '보류: 신규 배터리 사양 결정 대기'),
-    A('d5', 0, 9, 'u2', 'AI 분석 완료: 추천 5건, 읽지 못한 자료 1건'),
-  ]
-
-  const revs = [
-    { productId: 'p8', rev: 1, summary: '최초 배포', at: day(400), userId: 'u1' },
-    { productId: 'p8', rev: 2, summary: 'EMI 시험 FAIL에 따라 페라이트 사양 변경', at: day(180), userId: 'u1' },
-    { productId: 'p8', rev: 3, summary: 'USB 케이블 길이 변경, Viewer 화면의 Recording 기능 설명 추가', at: day(30), userId: 'u4' },
-    { productId: 'p5', rev: 1, summary: '최초 배포', at: day(120), userId: 'u2' },
-  ]
-
-  const N = (userId, daysAgo, hh, text, link, read) => ({ userId, at: at(daysAgo, hh), text, link, read: !!read })
-  const notifications = [
-    N('u1', 1, 16, '품질 담당(예시)님이 #3 배터리 문구 삭제 여부를 수정 완료했습니다. 확인해 주세요.', '/docs/d1?req=q3'),
-    N('u1', 0, 9, 'L2SX6 사용설명서 검토 요청이 왔습니다.', '/docs/d3', true),
-    N('u6', 8, 14, '이경환님이 #1 소비전류 값 확인을 요청했습니다.', '/docs/d1?req=q1', true),
-    N('u5', 8, 14, '이경환님이 #2 제품 사진 신형으로 교체를 요청했습니다.', '/docs/d1?req=q2'),
-    N('u5', 6, 10, '전현수님이 #5 루페 장착 그림 교체를 요청했습니다.', '/docs/d1?req=q5'),
-    N('u3', 2, 11, 'L2SX6 사용설명서 검토 요청이 왔습니다.', '/docs/d3'),
-    N('u4', 2, 11, 'L2SX6 사용설명서 검토 요청이 왔습니다.', '/docs/d3'),
-    N('u2', 0, 9, 'L2SW AI 분석이 끝났습니다. 추천 5건을 검토해 주세요.', '/ai/r2'),
-  ]
+  // LooksCAM LT 만 다음 개정(Rev.02)이 진행 중: 현재 사용본을 원본으로 연 작업
+  const lt = docs.find(d => d.productId === 'p9')
+  const ltV = versions.find(v => v.docId === lt.id)
+  const start = at(0, 9)
+  docs.push({ id: 'd1', productId: 'p9', title: 'LooksCAM LT KO 사용설명서 Rev.02 개정', status: 'progress', held: null, ownerId: 'u1', lock: null, createdAt: start, pages: JSON.parse(JSON.stringify(LT_PAGES)), manualLeft: [] })
+  versions.push({ id: 'v1', docId: 'd1', kind: 'original', name: ltV.name, at: start, userId: 'u1', note: 'Rev.02 개정의 원본 (현재 사용본)', size: ltV.size })
+  activity.push({ docId: 'd1', at: start, userId: 'u1', text: '개정 시작: Rev.01 현재 사용본에서 Rev.02 진행 중', change: false })
 
   return {
-    seq: { doc: 5, version: 9, file: 5, run: 2, req: 13, notif: notifications.length },
+    seq: { doc: 1, version: 1, file: 0, run: 0, req: 0, notif: 0 },
     settings: {
       reviewFlow: true,
       sections: [
@@ -264,7 +157,7 @@ export function buildSeed() {
       ],
       reasons: ['인증 시험 결과', '생산 변경', '신규 제품', '자료 불일치', '오탈자·표현', '기능 추가', '인증 문구 확인', '시험 결과'],
     },
-    users, categories, products, docs, versions, files, aiRuns, requests, activity, revs,
-    notifications: notifications.map((n, i) => ({ id: 'n' + (i + 1), ...n })),
+    users, categories, products, docs, versions, revs, activity,
+    files: [], aiRuns: [], requests: [], notifications: [],
   }
 }

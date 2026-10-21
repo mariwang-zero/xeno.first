@@ -50,7 +50,7 @@ async function logout() {
   router.push('/login')
 }
 async function reset() {
-  await attempt(() => api.resetDemo(), '예시 데이터로 되돌렸습니다.')
+  await attempt(() => api.resetDemo(), '처음 상태로 되돌렸습니다.')
   users.value = await api.users()
   await refreshMe()
   router.push('/')
@@ -60,9 +60,9 @@ async function reset() {
 <template>
   <div v-if="isDemo" class="demo-banner">
     <div class="topbar-inner">
-      <span><b>데모</b> · 예시 데이터로 동작합니다. 바꾼 내용은 이 브라우저에만 남습니다.</span>
+      <span><b>데모</b> · 시연용 데이터로 동작합니다. 바꾼 내용은 이 브라우저에만 남습니다.</span>
       <span class="spacer"></span>
-      <button class="btn ghost sm" @click="reset">예시 데이터로 되돌리기</button>
+      <button class="btn ghost sm" @click="reset">처음 상태로 되돌리기</button>
     </div>
   </div>
   <header v-if="session.user" class="topbar">

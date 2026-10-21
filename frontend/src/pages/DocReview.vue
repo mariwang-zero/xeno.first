@@ -393,7 +393,7 @@ main.wide { max-width: 1400px; }
 .band.warn { background: var(--st-req-bg); border-left-color: var(--st-req-fg); }
 .band.info { background: var(--accent-soft); border-left-color: var(--accent); }
 .layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 20px; align-items: start; }
-.preview { display: grid; gap: 20px; min-width: 0; max-width: 760px; width: 100%; justify-self: center; }
+.preview { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; max-width: 760px; width: 100%; justify-self: center; }
 .hint-line { margin-bottom: -10px; }
 .side { position: sticky; top: 64px; max-height: calc(100vh - 80px); display: flex; flex-direction: column; overflow: hidden; }
 .counts { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
