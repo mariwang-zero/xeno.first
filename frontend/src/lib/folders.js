@@ -1,0 +1,25 @@
+// 제품 폴더 규칙. 화면(데모의 폴더 연결)과 앱 서버(server.mjs)가 같이 쓴다.
+// 매뉴얼 폴더/<제품명>/최종본·검토본·참고자료
+export const SUBFOLDERS = ['최종본', '검토본', '참고자료']
+
+// 이름이 _ 로 시작하는 폴더(_앱데이터_백업 등)는 제품으로 보지 않는다
+export const isProductFolder = name => !!name && !name.startsWith('_') && !name.startsWith('.')
+
+// 폴더 이름으로 못 쓰는 글자를 _ 로 바꾼다 (윈도우·NAS 공통)
+export const safeName = s => String(s).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim() || '_'
+
+// 제품명 확인: 그대로 폴더 이름이 되므로 못 쓰는 글자를 막는다. 문제가 없으면 null
+export function productNameProblem(name, products = [], selfId = null) {
+  const n = String(name || '').trim()
+  if (!n) return '제품명을 적어 주세요.'
+  if (/[\\/:*?"<>|]/.test(n)) return '제품명에는 \\ / : * ? " < > | 를 쓸 수 없습니다. 폴더 이름으로 쓰입니다.'
+  if (!isProductFolder(n) || /[. ]$/.test(n)) return '제품명은 _ 나 . 로 시작하거나 . 이나 빈칸으로 끝날 수 없습니다.'
+  if (products.some(p => p.id !== selfId && p.name.toLowerCase() === n.toLowerCase())) return `이미 있는 제품입니다: ${n}`
+  return null
+}
+
+// 저장 파일 이름 앞에 붙이는 시각. 같은 이름을 덮어쓰지 않게 한다
+export function stamp(d = new Date()) {
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`
+}

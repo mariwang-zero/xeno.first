@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { api, isDemo } from '../api/index.js'
-import { session, attempt, notify } from '../store.js'
+import { api } from '../api/index.js'
+import { session, attempt } from '../store.js'
 import Chip from '../components/Chip.vue'
 import { VERSION_KIND, can, fmtDate, fmtDateTime, fmtRev } from '../lib/status.js'
 
@@ -15,7 +15,7 @@ async function makeCurrent(v) {
   if (!window.confirm(`${v.name}을(를) 현재 사용본으로 지정할까요?`)) return
   if (await attempt(() => api.setCurrent(v.id), '현재 사용본을 바꿨습니다.')) await load()
 }
-const download = v => (isDemo ? notify('데모라서 실제 파일은 내려받지 않습니다.') : (window.location.href = api.fileUrl('versions', v.id)))
+const download = v => attempt(() => api.download('versions', v.id))
 </script>
 
 <template>

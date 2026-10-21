@@ -1,4 +1,4 @@
-// 데모용 예시 데이터. 제품 목록은 과제계획서 그림 1, 시나리오는 7장(LooksCAM3 첫 시험)을 따릅니다.
+// 데모용 예시 데이터. 제품 목록은 실제 제품군(2026-10), 시나리오는 과제계획서 7장(LooksCAM3 첫 시험, 데모에서는 LooksCAM LT)을 따릅니다.
 // 매뉴얼 본문은 화면을 보여 주기 위한 예시 문장이며 실제 매뉴얼 내용이 아닙니다.
 
 export function toLocalIso(d) {
@@ -73,19 +73,19 @@ export function applyItems(pgs, items) {
   return { pages: out, failed }
 }
 
-// LooksCAM3 첫 시험 때 AI가 낸 추천 목록 (예시)
+// LooksCAM LT 첫 시험 때 AI가 낸 추천 목록 (예시)
 function looksCam3Items() {
   return [
-    { no: 1, page: 1, kind: 'text', note: 'ai', before: 'LooksCAM2는 의료용', after: 'LooksCAM3는 의료용', summary: '제품명을 LooksCAM3로 변경', basis: 'LooksCAM3 사양서 1p', checked: true },
-    { no: 2, page: 1, kind: 'text', note: 'ai', before: '본 설명서는 LooksCAM2의', after: '본 설명서는 LooksCAM3의', summary: '제품명을 LooksCAM3로 변경', basis: 'LooksCAM3 사양서 1p', checked: true },
-    { no: 3, page: 1, kind: 'image', note: 'manual', before: '제품 전체 사진', after: '', summary: '구형 사진을 신형 제품 사진으로 교체', basis: 'LooksCAM3 제품 사진.jpg', checked: false },
-    { no: 4, page: 2, kind: 'text', note: 'check', cert: true, before: '배터리는 지정된 충전기로만 충전하십시오.', after: '(문장 삭제)', summary: 'USB 전원 제품이라 배터리 문구 삭제 제안. 인증 문구가 있는 절이라 확인 필요', basis: 'LooksCAM3 사양서 3p', checked: false },
-    { no: 5, page: 3, kind: 'text', note: 'ai', before: '1080p Full HD 영상 녹화를 지원합니다.', after: '4K UHD 영상 녹화를 지원합니다.', summary: '기능 설명을 신규 사양에 맞게 수정', basis: 'LooksCAM3 사양서 2p', checked: true },
+    { no: 1, page: 1, kind: 'text', note: 'ai', before: 'LooksCAM2는 의료용', after: 'LooksCAM LT는 의료용', summary: '제품명을 LooksCAM LT로 변경', basis: 'LooksCAM LT 사양서 1p', checked: true },
+    { no: 2, page: 1, kind: 'text', note: 'ai', before: '본 설명서는 LooksCAM2의', after: '본 설명서는 LooksCAM LT의', summary: '제품명을 LooksCAM LT로 변경', basis: 'LooksCAM LT 사양서 1p', checked: true },
+    { no: 3, page: 1, kind: 'image', note: 'manual', before: '제품 전체 사진', after: '', summary: '구형 사진을 신형 제품 사진으로 교체', basis: 'LooksCAM LT 제품 사진.jpg', checked: false },
+    { no: 4, page: 2, kind: 'text', note: 'check', cert: true, before: '배터리는 지정된 충전기로만 충전하십시오.', after: '(문장 삭제)', summary: 'USB 전원 제품이라 배터리 문구 삭제 제안. 인증 문구가 있는 절이라 확인 필요', basis: 'LooksCAM LT 사양서 3p', checked: false },
+    { no: 5, page: 3, kind: 'text', note: 'ai', before: '1080p Full HD 영상 녹화를 지원합니다.', after: '4K UHD 영상 녹화를 지원합니다.', summary: '기능 설명을 신규 사양에 맞게 수정', basis: 'LooksCAM LT 사양서 2p', checked: true },
     { no: 6, page: 3, kind: 'text', note: 'ai', op: 'add', anchor: 'Viewer 프로그램에서', before: '', after: 'Viewer의 Recording 버튼으로 영상을 PC에 바로 저장할 수 있습니다.', summary: '신규 기능 설명 문단 추가', basis: '작성 참고 내용 2번', checked: true },
-    { no: 7, page: 3, kind: 'table', note: 'ai', before: 'USB 케이블 (1.5m)', after: 'USB-C 케이블 (2m)', summary: '구성품 표의 케이블 사양 변경', basis: 'LooksCAM3 구성품 목록.xlsx', checked: true },
-    { no: 8, page: 4, kind: 'image', note: 'manual', before: '루페 장착 그림', after: '', summary: '장착 그림을 신형 클립으로 교체', basis: 'LooksCAM3 제품 사진.jpg', checked: false },
-    { no: 9, page: 5, kind: 'table', note: 'ai', before: '1920 × 1080', after: '3840 × 2160', summary: '해상도 값을 신규 자료 기준으로 변경', basis: 'LooksCAM3 사양서 2p', checked: true },
-    { no: 10, page: 5, kind: 'table', note: 'check', before: '350 mA', after: '420 mA', summary: '소비전류 값 변경 제안. 사양서(420 mA)와 시험성적서(400 mA)가 서로 다름', basis: 'LooksCAM3 사양서 2p, EMC 시험성적서 5p', checked: false },
+    { no: 7, page: 3, kind: 'table', note: 'ai', before: 'USB 케이블 (1.5m)', after: 'USB-C 케이블 (2m)', summary: '구성품 표의 케이블 사양 변경', basis: 'LooksCAM LT 구성품 목록.xlsx', checked: true },
+    { no: 8, page: 4, kind: 'image', note: 'manual', before: '루페 장착 그림', after: '', summary: '장착 그림을 신형 클립으로 교체', basis: 'LooksCAM LT 제품 사진.jpg', checked: false },
+    { no: 9, page: 5, kind: 'table', note: 'ai', before: '1920 × 1080', after: '3840 × 2160', summary: '해상도 값을 신규 자료 기준으로 변경', basis: 'LooksCAM LT 사양서 2p', checked: true },
+    { no: 10, page: 5, kind: 'table', note: 'check', before: '350 mA', after: '420 mA', summary: '소비전류 값 변경 제안. 사양서(420 mA)와 시험성적서(400 mA)가 서로 다름', basis: 'LooksCAM LT 사양서 2p, EMC 시험성적서 5p', checked: false },
   ]
 }
 
@@ -107,17 +107,19 @@ export function buildSeed() {
     { id: 'c3', name: '카메라', order: 3 },
   ]
   const P = (id, categoryId, name, docNo, rev, order) => ({ id, categoryId, name, docNo, rev, order, hidden: false, currentVersionId: null })
+  // 제품군 (2026-10 기준). 제품명이 그대로 매뉴얼 폴더 이름이 된다. 새 제품은 관리 화면에서 추가한다
   const products = [
-    P('p1', 'c1', 'Looks 시리즈', 'LS-UM-KO', 4, 1),
-    P('p2', 'c1', 'Looks-H 시리즈', 'LH-UM-KO', 2, 2),
-    P('p3', 'c2', 'L2SW', 'L2SW-UM-KO', 0, 1),
-    P('p4', 'c2', 'L2SN5', 'L2SN5-UM-KO', 3, 2),
-    P('p5', 'c2', 'L2SX6', 'L2SX6-UM-KO', 1, 3),
-    P('p6', 'c2', 'XD-Light', 'XDL-UM-KO', 5, 4),
-    P('p7', 'c2', 'XD-Light4', 'XDL4-UM-KO', 0, 5),
-    P('p8', 'c3', 'LooksCAM2', 'LC2-UM-KO', 3, 1),
-    P('p9', 'c3', 'LooksCAM3', 'LC3-UM-KO', 0, 2),
-    P('p10', 'c3', 'LooksCAM-LT', 'LCLT-UM-KO', 1, 3),
+    P('p1', 'c1', 'Looks', 'LS-UM-KO', 4, 1),
+    P('p2', 'c2', 'L2S14C', 'L2S14C-UM-KO', 2, 1),
+    P('p4', 'c2', 'L2S15', 'L2S15-UM-KO', 3, 2),
+    P('p3', 'c2', 'L2SW', 'L2SW-UM-KO', 0, 3),
+    P('p10', 'c2', 'L2SWE', 'L2SWE-UM-KO', 1, 4),
+    P('p11', 'c2', 'L2SX5', 'L2SX5-UM-KO', 2, 5),
+    P('p5', 'c2', 'L2SX6', 'L2SX6-UM-KO', 1, 6),
+    P('p6', 'c2', 'XD Light', 'XDL-UM-KO', 5, 7),
+    P('p7', 'c2', 'XD Light4', 'XDL4-UM-KO', 0, 8),
+    P('p9', 'c3', 'LooksCAM LT', 'LCLT-UM-KO', 0, 1),
+    P('p8', 'c3', 'LooksCAM2', 'LC2-UM-KO', 3, 2),
   ]
 
   const cam2 = cameraManual('LooksCAM2')
@@ -125,10 +127,10 @@ export function buildSeed() {
   const cam3 = applyItems(cam2, r1Items.filter(i => i.checked)).pages
 
   const docs = [
-    { id: 'd1', productId: 'p9', title: 'LooksCAM3 KO 사용설명서 신규 작성', status: 'progress', held: null, ownerId: 'u1', lock: null, createdAt: at(9, 9), pages: cam3, manualLeft: [3, 8] },
+    { id: 'd1', productId: 'p9', title: 'LooksCAM LT KO 사용설명서 신규 작성', status: 'progress', held: null, ownerId: 'u1', lock: null, createdAt: at(9, 9), pages: cam3, manualLeft: [3, 8] },
     { id: 'd2', productId: 'p8', title: 'LooksCAM2 KO 사용설명서 Rev.03 개정', status: 'deploy', held: null, ownerId: 'u1', lock: null, createdAt: at(60), pages: cam2, manualLeft: [] },
     { id: 'd3', productId: 'p5', title: 'L2SX6 KO 사용설명서 Rev.02 개정', status: 'review', held: null, ownerId: 'u2', lock: null, createdAt: at(20), pages: lightManual('L2SX6'), manualLeft: [] },
-    { id: 'd4', productId: 'p7', title: 'XD-Light4 KO 사용설명서 신규 작성', status: 'progress', held: { reason: '신규 배터리 사양 결정 대기', at: at(4), userId: 'u2' }, ownerId: 'u2', lock: { userId: 'u2', at: at(4, 15) }, createdAt: at(15), pages: lightManual('XD-Light4'), manualLeft: [] },
+    { id: 'd4', productId: 'p7', title: 'XD Light4 KO 사용설명서 신규 작성', status: 'progress', held: { reason: '신규 배터리 사양 결정 대기', at: at(4), userId: 'u2' }, ownerId: 'u2', lock: { userId: 'u2', at: at(4, 15) }, createdAt: at(15), pages: lightManual('XD Light4'), manualLeft: [] },
     { id: 'd5', productId: 'p3', title: 'L2SW KO 사용설명서 신규 작성', status: 'ai', held: null, ownerId: 'u2', lock: null, createdAt: at(0, 9, 10), pages: null, manualLeft: [] },
   ]
 
@@ -138,19 +140,19 @@ export function buildSeed() {
     V('v2', 'd2', 'review', 'LC2-UM-KO_Rev03_검토본.docx', 40, 'u1', '편집본 올림: USB 케이블 길이 변경', 4.2),
     V('v3', 'd2', 'final', 'LC2-UM-KO_Rev03.docx', 31, 'u4', '최종 검토 완료', 4.2),
     V('v4', 'd1', 'original', 'LC2-UM-KO_Rev03.docx (기존 레퍼런스)', 9, 'u1', 'AI 초안의 기준 문서', 4.2),
-    V('v5', 'd1', 'ai', 'LC3-UM-KO_AI초안.docx', 9, 'u1', 'AI 추천 6건 반영', 4.3),
-    V('v6', 'd1', 'review', 'LC3-UM-KO_검토본_1.docx', 3, 'u5', '편집본 올림: 클립 마운트 명칭 정리', 4.4),
+    V('v5', 'd1', 'ai', 'LCLT-UM-KO_AI초안.docx', 9, 'u1', 'AI 추천 6건 반영', 4.3),
+    V('v6', 'd1', 'review', 'LCLT-UM-KO_검토본_1.docx', 3, 'u5', '편집본 올림: 클립 마운트 명칭 정리', 4.4),
     V('v7', 'd3', 'original', 'L2SX6-UM-KO_Rev01.docx', 21, 'u2', '원본 등록', 2.2),
     V('v8', 'd3', 'review', 'L2SX6-UM-KO_Rev02_검토본.docx', 2, 'u2', '검토 요청 시점 버전', 2.3),
-    V('v9', 'd4', 'original', 'XD-Light_Rev05.docx (기존 레퍼런스)', 15, 'u2', '기준 문서', 2.0),
+    V('v9', 'd4', 'original', 'XDL-UM-KO_Rev05.docx (기존 레퍼런스)', 15, 'u2', '기준 문서', 2.0),
   ]
   products.find(x => x.id === 'p8').currentVersionId = 'v3'
   products.find(x => x.id === 'p5').currentVersionId = 'v7'
 
   const files = [
-    { id: 'f1', docId: 'd1', name: 'LooksCAM3 사양서.pdf', size: 1.2, at: at(9, 9, 20), userId: 'u1' },
-    { id: 'f2', docId: 'd1', name: 'LooksCAM3 제품 사진.jpg', size: 3.4, at: at(9, 9, 21), userId: 'u1' },
-    { id: 'f3', docId: 'd1', name: 'LooksCAM3 구성품 목록.xlsx', size: 0.1, at: at(9, 9, 22), userId: 'u1' },
+    { id: 'f1', docId: 'd1', name: 'LooksCAM LT 사양서.pdf', size: 1.2, at: at(9, 9, 20), userId: 'u1' },
+    { id: 'f2', docId: 'd1', name: 'LooksCAM LT 제품 사진.jpg', size: 3.4, at: at(9, 9, 21), userId: 'u1' },
+    { id: 'f3', docId: 'd1', name: 'LooksCAM LT 구성품 목록.xlsx', size: 0.1, at: at(9, 9, 22), userId: 'u1' },
     { id: 'f4', docId: 'd1', name: 'EMC 시험성적서.pdf', size: 2.7, at: at(9, 9, 23), userId: 'u1' },
     { id: 'f5', docId: 'd5', name: 'L2SW 사양서.pdf', size: 0.9, at: at(0, 9, 12), userId: 'u2' },
   ]
@@ -158,7 +160,7 @@ export function buildSeed() {
   const aiRuns = [
     {
       id: 'r1', docId: 'd1', userId: 'u1', at: at(9, 9, 30), status: 'applied', appliedAt: at(9, 10, 5),
-      inputs: { reference: 'LC2-UM-KO_Rev03.docx', sources: ['LooksCAM3 사양서.pdf', 'LooksCAM3 제품 사진.jpg', 'LooksCAM3 구성품 목록.xlsx', 'EMC 시험성적서.pdf'], mustInclude: '1. 제품명은 LooksCAM3로 통일\n2. Viewer Recording 기능 설명 추가', extra: '이미지는 바꾸지 말 것' },
+      inputs: { reference: 'LC2-UM-KO_Rev03.docx', sources: ['LooksCAM LT 사양서.pdf', 'LooksCAM LT 제품 사진.jpg', 'LooksCAM LT 구성품 목록.xlsx', 'EMC 시험성적서.pdf'], mustInclude: '1. 제품명은 LooksCAM LT로 통일\n2. Viewer Recording 기능 설명 추가', extra: '이미지는 바꾸지 말 것' },
       items: r1Items, failures: [], result: { applied: 6, failed: [], manual: 2 },
     },
     {

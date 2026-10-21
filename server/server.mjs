@@ -140,8 +140,7 @@ function sessionOf(req) {
 }
 
 // ── NAS 파일 ───────────────────────────────────────────
-const safe = s => String(s).replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim() || '_'
-const stamp = () => { const d = new Date(); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}` }
+const { SUBFOLDERS, isProductFolder, safeName: safe, stamp } = await import('../frontend/src/lib/folders.js')
 const productOf = id => db().products.find(p => p.id === id)
 const docOf = id => db().docs.find(d => d.id === id)
 function writeFileToNas(product, folder, name, buf) {
@@ -156,6 +155,49 @@ function writeFileToNas(product, folder, name, buf) {
   }
   return rel
 }
+// 제품 폴더: <제품명>/최종본·검토본·참고자료. 제품을 추가하거나 서버가 켜질 때 없는 폴더를 만든다
+function ensureProductFolders(product) {
+  let made = 0
+  for (const sub of SUBFOLDERS) {
+    const dir = path.join(FILES, safe(product.name), sub)
+    if (fs.existsSync(dir)) continue
+    fs.mkdirSync(dir, { recursive: true })
+    made++
+  }
+  return made
+}
+function ensureAllFolders() {
+  if (!fs.existsSync(FILES)) return { created: 0 }
+  let created = 0
+  for (const p of db().products) {
+    try { if (ensureProductFolders(p)) created++ } catch (e) { console.error('[제품 폴더 만들기 실패]', p.name, e.message) }
+  }
+  return { created }
+}
+// NAS 폴더에 직접 만든 제품 폴더는 제품 목록에 등록한다 (대분류: 미분류)
+async function syncFolders(userId) {
+  if (!fs.existsSync(FILES)) throw new HttpError(400, 'NAS 공유 폴더에 연결되지 않았습니다. 서버 설정(filesDir)과 NAS 연결을 확인해 주세요.')
+  const { created } = ensureAllFolders()
+  const known = new Set(db().products.map(p => safe(p.name).toLowerCase()))
+  const fresh = fs.readdirSync(FILES, { withFileTypes: true }).filter(e => e.isDirectory() && isProductFolder(e.name) && !known.has(e.name.toLowerCase())).map(e => e.name)
+  const added = fresh.length ? await as(userId, () => api.registerFolders(fresh)) : []
+  ensureAllFolders()
+  return { created, added }
+}
+function listProductFolder(product) {
+  return SUBFOLDERS.map(sub => {
+    const dir = path.join(FILES, safe(product.name), sub)
+    let files = []
+    try {
+      files = fs.readdirSync(dir, { withFileTypes: true }).filter(e => e.isFile()).map(e => {
+        const st = fs.statSync(path.join(dir, e.name))
+        return { name: e.name, size: st.size, at: st.mtime.toISOString() }
+      }).sort((a, b) => b.at.localeCompare(a.at))
+    } catch {}
+    return { sub, files }
+  })
+}
+
 // 파일 없이 기록만 생긴 버전(최종본, 개정 시작 원본 등)에 실제 파일을 잇는다
 function linkVersionFiles() {
   const d = db()
@@ -277,13 +319,46 @@ const simple = [
   ['POST', '/versions/:id/current', ({ id }) => api.setCurrent(id)],
   ['GET', '/admin', () => api.adminData()],
   ['POST', '/admin/users', (_p, b) => api.saveUser(b)],
-  ['POST', '/admin/products', (_p, b) => api.saveProduct(b)],
+  ['POST', '/admin/categories', (_p, b) => api.saveCategory(b.name)],
   ['POST', '/admin/settings', (_p, b) => api.saveSettings(b)],
 ]
 for (const [m, p, fn] of simple) route(m, p, async ({ params, body, sess }) => {
   const r = await as(sess.userId, () => fn(params, body || {}))
   if (m !== 'GET') linkVersionFiles()
   return r
+})
+
+// 제품·매뉴얼 폴더
+route('POST', '/admin/products', async ({ body, sess }) => {
+  const r = await as(sess.userId, () => api.saveProduct(body || {}))
+  if (!body.id && fs.existsSync(FILES)) {
+    const p = db().products.find(x => x.name === String(body.name).trim())
+    try { ensureProductFolders(p) } catch (e) { console.error('[제품 폴더 만들기 실패]', p.name, e.message) }
+  }
+  return r
+})
+route('GET', '/admin/folder', ({ sess }) => {
+  if (!db().users.find(u => u.id === sess.userId)?.admin) throw new HttpError(403, '관리자만 볼 수 있습니다.')
+  return { mode: 'server', supported: true, name: FILES, connected: fs.existsSync(FILES), needsPermission: false }
+})
+route('POST', '/admin/folder/sync', ({ sess }) => {
+  if (!db().users.find(u => u.id === sess.userId)?.admin) throw new HttpError(403, '관리자만 바꿀 수 있습니다.')
+  return syncFolders(sess.userId)
+})
+route('POST', '/admin/folders/register', ({ body, sess }) => as(sess.userId, () => api.registerFolders(body.names || [])))
+route('GET', '/products/:id/folder', ({ params }) => {
+  const p = productOf(params.id)
+  if (!p) throw new HttpError(404, '제품을 찾을 수 없습니다.')
+  const connected = fs.existsSync(FILES)
+  return { mode: 'server', name: FILES, path: safe(p.name), connected, subs: connected ? listProductFolder(p) : [] }
+})
+route('GET', '/products/:id/folder/file', ({ params, req, res }) => {
+  const p = productOf(params.id)
+  if (!p) throw new HttpError(404, '제품을 찾을 수 없습니다.')
+  const q = new URL(req.url, 'http://x').searchParams
+  const sub = q.get('sub'), name = q.get('name') || ''
+  if (!SUBFOLDERS.includes(sub) || !name || name !== path.basename(name) || name.startsWith('.')) throw new HttpError(400, '파일 이름이 잘못되었습니다.')
+  return sendFile(res, path.join(safe(p.name), sub, name), name.replace(/^\d{8}-\d{6}_/, ''))
 })
 
 // 파일이 오가는 요청
@@ -417,9 +492,10 @@ const srv = http.createServer(async (req, res) => {
     res.end(JSON.stringify({ detail: rule ? e.message : '서버에서 문제가 생겼습니다. 관리자에게 알려 주세요.' }))
   }
 })
+const startup = ensureAllFolders()
 srv.listen(cfg.port, () => {
   console.log(`AI 매뉴얼 협업시스템: http://localhost:${cfg.port}`)
   console.log(`  앱 데이터: ${DB_FILE}`)
-  console.log(`  매뉴얼 파일(NAS): ${FILES}${fs.existsSync(FILES) ? '' : '  ← 아직 연결되지 않음'}`)
+  console.log(`  매뉴얼 파일(NAS): ${FILES}${fs.existsSync(FILES) ? (startup.created ? `  (제품 폴더 ${startup.created}개 새로 만듦)` : '') : '  ← 아직 연결되지 않음'}`)
   console.log(`  로그인: ${cfg.auth === 'local' ? '시험용 공용 비밀번호' : 'NAS 계정 (' + (cfg.nas.url || '주소 없음') + ')'}`)
 })

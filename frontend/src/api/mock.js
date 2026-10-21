@@ -2,8 +2,9 @@
 // 데이터는 이 브라우저에만 저장됩니다(localStorage). "예시 데이터로 되돌리기"로 처음 상태로 돌아갑니다.
 import { buildSeed, toLocalIso, applyItems, cameraManual, lightManual } from './seed.js'
 import { DOC_STATUS, REQ_STATUS, can, isOverdue, fmtRev } from '../lib/status.js'
+import { productNameProblem } from '../lib/folders.js'
 
-const KEY = 'manual-system-demo-v2'
+const KEY = 'manual-system-demo-v3'
 let db = load()
 let me = null
 
@@ -605,17 +606,53 @@ export const api = {
     save()
     return wait(db.users)
   },
+  // 제품 추가·수정. 제품명이 매뉴얼 폴더 이름이 되므로 폴더에 못 쓰는 이름과 같은 이름은 막는다.
+  // 폴더를 실제로 만드는 일은 저장하는 쪽(서버, 데모의 폴더 연결)이 한다.
   async saveProduct(prod) {
     requireMe()
     if (!me.admin) return fail('관리자만 바꿀 수 있습니다.')
-    if (!prod.name?.trim()) return fail('제품명을 적어 주세요.')
-    if (prod.id) Object.assign(productOf(prod.id), prod)
+    const cur = prod.id && productOf(prod.id)
+    if (cur && prod.name !== undefined && prod.name.trim() !== cur.name) return fail('제품명은 바꿀 수 없습니다. 매뉴얼 폴더 이름과 이어져 있습니다.')
+    if (!cur) {
+      const problem = productNameProblem(prod.name, db.products)
+      if (problem) return fail(problem)
+    }
+    if (prod.categoryId && !db.categories.some(c => c.id === prod.categoryId)) return fail('대분류를 골라 주세요.')
+    if (cur) Object.assign(cur, prod, { name: cur.name })
     else {
+      const name = prod.name.trim()
       const order = Math.max(0, ...db.products.filter(p => p.categoryId === prod.categoryId).map(p => p.order)) + 1
-      db.products.push({ id: 'p' + Date.now() % 100000, rev: 0, hidden: false, currentVersionId: null, docNo: prod.name.toUpperCase().replace(/\s+/g, '') + '-UM-KO', order, ...prod })
+      db.products.push({ id: 'p' + Date.now().toString(36), rev: 0, hidden: false, currentVersionId: null, docNo: name.toUpperCase().replace(/\s+/g, '') + '-UM-KO', order, ...prod, name })
     }
     save()
     return wait(db.products)
+  },
+  async saveCategory(name) {
+    requireMe()
+    if (!me.admin) return fail('관리자만 바꿀 수 있습니다.')
+    const n = String(name || '').trim()
+    if (!n) return fail('대분류 이름을 적어 주세요.')
+    if (db.categories.some(c => c.name === n)) return fail(`이미 있는 대분류입니다: ${n}`)
+    db.categories.push({ id: 'c' + Date.now().toString(36), name: n, order: Math.max(0, ...db.categories.filter(c => c.name !== '미분류').map(c => c.order)) + 1 })
+    save()
+    return wait(db.categories)
+  },
+  // 매뉴얼 폴더에서 찾은 폴더 이름 중 목록에 없는 것을 제품으로 등록한다 (대분류: 미분류)
+  async registerFolders(names) {
+    requireMe()
+    if (!me.admin) return fail('관리자만 바꿀 수 있습니다.')
+    const added = []
+    for (const raw of names || []) {
+      const name = String(raw).trim()
+      if (productNameProblem(name, db.products)) continue
+      let cat = db.categories.find(c => c.name === '미분류')
+      if (!cat) db.categories.push(cat = { id: 'c' + Date.now().toString(36), name: '미분류', order: 99 })
+      const order = Math.max(0, ...db.products.filter(p => p.categoryId === cat.id).map(p => p.order)) + 1
+      db.products.push({ id: 'p' + Date.now().toString(36) + added.length, categoryId: cat.id, name, docNo: name.toUpperCase().replace(/\s+/g, '') + '-UM-KO', rev: 0, order, hidden: false, currentVersionId: null })
+      added.push(name)
+    }
+    if (added.length) save()
+    return wait(added)
   },
   async saveSettings(s) {
     requireMe()

@@ -73,8 +73,19 @@ export const api = {
   adminData: () => get('/admin'),
   saveUser: u => post('/admin/users', u),
   saveProduct: p => post('/admin/products', p),
+  saveCategory: name => post('/admin/categories', { name }),
+  registerFolders: names => post('/admin/folders/register', { names }),
   saveSettings: s => post('/admin/settings', s),
   resetDemo: async () => true,
+  // 매뉴얼 폴더 (서버가 NAS 공유 폴더를 읽고 쓴다)
+  folderStatus: () => get('/admin/folder'),
+  connectFolder: async () => null,
+  regrantFolder: async () => null,
+  disconnectFolder: async () => null,
+  syncFolders: () => post('/admin/folder/sync'),
+  productFolder: id => get(`/products/${id}/folder`),
+  openFolderFile: async (id, sub, name) => { window.location.href = `/api/products/${id}/folder/file?sub=${encodeURIComponent(sub)}&name=${encodeURIComponent(name)}`; return true },
+  download: async (kind, id) => { window.location.href = `/api/${kind}/${id}/file`; return true },
   // 파일 내려받기 주소. kind: products(현재 사용본) / docs(작업의 최신 버전) / versions / files
   fileUrl: (kind, id) => `/api/${kind}/${id}/file`,
 }

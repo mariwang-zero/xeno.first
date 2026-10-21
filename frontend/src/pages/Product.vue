@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { api, isDemo } from '../api/index.js'
+import { api } from '../api/index.js'
 import { session, attempt, notify } from '../store.js'
 import Chip from '../components/Chip.vue'
 import DocSteps from '../components/DocSteps.vue'
@@ -26,7 +26,19 @@ async function load() {
   const [pp, st] = await Promise.all([api.product(props.id), api.settings()])
   p.value = pp
   settings.value = st
+  loadFolder()
 }
+// 제품 폴더(매뉴얼 폴더/<제품명>/최종본·검토본·참고자료)의 실제 내용
+const folder = ref(null)
+const folderSub = ref('최종본')
+async function loadFolder() {
+  try { folder.value = await api.productFolder(props.id) } catch (e) { folder.value = { connected: false, error: e.message, subs: [] } }
+}
+async function regrant() {
+  if (await attempt(() => api.regrantFolder(), '폴더를 다시 연결했습니다.')) loadFolder()
+}
+const folderFiles = computed(() => folder.value?.subs.find(s => s.sub === folderSub.value)?.files || [])
+const kb = n => (n >= 1e6 ? (n / 1e6).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1e3)) + ' KB')
 onMounted(load)
 
 const active = computed(() => p.value?.docs.find(d => d.status !== 'deploy') || p.value?.docs[0])
@@ -47,20 +59,14 @@ async function onFile(e) {
   const f = e.target.files?.[0]
   e.target.value = ''
   if (!f || !active.value) return
-  if (await attempt(() => api.addFile(active.value.id, isDemo ? f.name : f, f.size), '참고자료를 등록했습니다.')) load()
+  if (await attempt(() => api.addFile(active.value.id, f, f.size), '참고자료를 등록했습니다.')) load()
 }
 function pickFile() {
   if (!active.value) return notify('먼저 작업을 시작해 주세요. AI 초안 생성으로 작업이 만들어집니다.', 'error')
   fileInput.value.click()
 }
-function download() {
-  if (isDemo) return notify('데모라서 실제 파일은 내려받지 않습니다.')
-  window.location.href = api.fileUrl('products', p.value.id)
-}
-function openFile(f) {
-  if (isDemo) return notify('데모라서 실제 파일은 내려받지 않습니다.')
-  window.location.href = api.fileUrl(tab.value === 'ref' ? 'files' : 'versions', f.id)
-}
+const download = () => attempt(() => api.download('products', p.value.id))
+const openFile = f => attempt(() => api.download(tab.value === 'ref' ? 'files' : 'versions', f.id))
 // 기존 매뉴얼 등록: 열린 작업이 없을 때, 지금 쓰는 워드 파일을 현재 사용본으로 올린다
 const importInput = ref(null)
 const canImport = computed(() => p.value && (can.aiDraft(session.user) || session.user?.admin) && !p.value.docs.some(d => d.status !== 'deploy'))
@@ -139,6 +145,29 @@ async function onImport(e) {
             <li v-for="f in tabItems" :key="f.id"><button class="linkish mono xs" style="overflow-wrap: anywhere" :title="f.name + ' 내려받기'" @click="openFile(f)">{{ f.name }}</button><span class="xs muted">{{ f.user?.name }} · {{ fmtDate(f.at) }}<template v-if="f.note"> · {{ f.note }}</template></span></li>
           </ul>
           <div v-else class="empty">파일이 없습니다.</div>
+        </section>
+
+        <section class="panel" v-if="folder">
+          <div class="panel-head" style="padding-bottom: 0; border: 0">
+            <h2>제품 폴더</h2>
+            <span v-if="folder.connected" class="mono xs muted" style="overflow-wrap: anywhere">{{ folder.name }}/{{ folder.path }}</span>
+            <button v-if="folder.connected" class="btn sm ghost" style="margin-left: auto" @click="loadFolder">새로 고침</button>
+          </div>
+          <template v-if="folder.connected">
+            <div class="tabs" role="tablist">
+              <button v-for="s in folder.subs" :key="s.sub" role="tab" :aria-selected="folderSub === s.sub" :class="{ on: folderSub === s.sub }" @click="folderSub = s.sub">{{ s.sub }} <span class="num xs">{{ s.files.length }}</span></button>
+            </div>
+            <ul class="files" v-if="folderFiles.length">
+              <li v-for="f in folderFiles" :key="f.name"><button class="linkish mono xs" style="overflow-wrap: anywhere" :title="f.name + ' 내려받기'" @click="attempt(() => api.openFolderFile(p.id, folderSub, f.name))">{{ f.name }}</button><span class="xs muted">{{ kb(f.size) }} · {{ fmtDateTime(f.at) }}</span></li>
+            </ul>
+            <div v-else class="empty">폴더가 비어 있습니다.</div>
+          </template>
+          <div v-else class="panel-body stack">
+            <p class="small muted" v-if="folder.needsPermission">전에 연결한 폴더 <b class="mono">{{ folder.name }}</b>를 다시 쓰려면 권한을 한 번 더 주세요.</p>
+            <p class="small muted" v-else-if="folder.error">{{ folder.error }}</p>
+            <p class="small muted" v-else>매뉴얼 폴더가 연결되지 않았습니다. 관리 &gt; 제품에서 폴더를 연결하면 이 제품 폴더의 파일이 여기에 보이고, 올린 파일이 폴더에 저장됩니다.</p>
+            <div v-if="folder.needsPermission"><button class="btn sm" @click="regrant">폴더 다시 연결</button></div>
+          </div>
         </section>
       </div>
     </div>

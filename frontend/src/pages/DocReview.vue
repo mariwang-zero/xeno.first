@@ -172,10 +172,7 @@ async function startRevision() {
   if (n) router.push('/docs/' + n.id)
 }
 const deploy = () => docAct(() => api.deploy(props.id, panelText.value), '배포했습니다. 현재 사용본이 바뀌었습니다.')
-function download() {
-  if (isDemo) return notify('데모라서 실제 파일은 내려받지 않습니다.')
-  window.location.href = api.fileUrl('docs', props.id)
-}
+const download = () => attempt(() => api.download('docs', props.id))
 function toggleArea() {
   areaMode.value = !areaMode.value
   menu.value = null

@@ -67,7 +67,7 @@ async function run() {
         </div>
 
         <label class="field">참고할 작성 내용<span class="hint">반드시 들어가야 할 문구나 작성 방향. 한 줄에 하나씩 적으면 항목별로 반영합니다.</span>
-          <textarea id="ai-must" v-model="form.mustInclude" placeholder="예: 제품명은 LooksCAM3로 통일&#10;Viewer Recording 기능 설명 추가"></textarea>
+          <textarea id="ai-must" v-model="form.mustInclude" placeholder="예: 제품명은 LooksCAM LT로 통일&#10;Viewer Recording 기능 설명 추가"></textarea>
         </label>
         <label class="field">추가 지시사항<span class="hint">이번 개정에만 적용할 조건</span>
           <textarea id="ai-extra" v-model="form.extra" placeholder="예: 이미지는 바꾸지 말 것"></textarea>
