@@ -4,7 +4,7 @@ import { buildSeed, toLocalIso, applyItems, cameraManual, lightManual } from './
 import { DOC_STATUS, REQ_STATUS, can, isOverdue, fmtRev } from '../lib/status.js'
 import { productNameProblem } from '../lib/folders.js'
 
-const KEY = 'manual-system-demo-v3'
+const KEY = 'manual-system-demo-v4'
 let db = load()
 let me = null
 
