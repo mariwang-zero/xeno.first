@@ -6,6 +6,7 @@ import { session, attempt, notify } from '../store.js'
 import Chip from '../components/Chip.vue'
 import DocPage from '../components/DocPage.vue'
 import PdfPage from '../components/PdfPage.vue'
+import DocxPages from '../components/DocxPages.vue'
 import { openPdf } from '../lib/pdf.js'
 import AreaThumb from '../components/AreaThumb.vue'
 import { REQ_STATUS, can, fmtDate, fmtDateTime, isOverdue } from '../lib/status.js'
@@ -70,7 +71,10 @@ async function loadPdf(src) {
   }
 }
 const pdfPages = computed(() => (pdfDoc.value ? Array.from({ length: pdfDoc.value.numPages }, (_, i) => i + 1) : []))
-const hasView = computed(() => d.value && (d.value.pages || d.value.pdf))
+const hasView = computed(() => d.value && (d.value.pages || d.value.pdf || d.value.docx))
+const docxPages = ref(0)
+const docxFailed = ref(false)
+const useDocx = computed(() => !pdfDoc.value && !!d.value?.docx && !docxFailed.value)
 // PDF 쪽에서는 인증 문구가 있는 절을 쪽 글자로 찾는다
 const CERT_WORDS = ['주의사항', '전자기 적합성', '전자파 적합성', 'EMC']
 
@@ -142,7 +146,7 @@ function onArea({ page, rect }) {
   openComposer('request', { type: 'area', rect }, page)
 }
 function certOf(anchor, page) {
-  if (pdfDoc.value) return CERT_WORDS.some(w => (pageText.value[page] || '').includes(w))
+  if (pdfDoc.value || useDocx.value) return CERT_WORDS.some(w => (pageText.value[page] || '').includes(w))
   const pg = d.value.pages?.find(p => p.no === page)
   if (!pg) return false
   if (anchor.type === 'area') return pg.blocks.some(b => b.type === 'h' && b.cert)
@@ -307,6 +311,10 @@ function toggleArea() {
         <p v-if="pdfError || d.previewError" class="xs muted">{{ pdfError || d.previewError }}</p>
         <template v-if="pdfDoc">
           <PdfPage v-for="n in pdfPages" :key="d.pdf + n" :pdf="pdfDoc" :no="n" :anchors="anchorsOn(n)" :active-id="activeId" :area-mode="areaMode" @area="onArea" @pick="pick" @text="t => (pageText[t.no] = t.text)" />
+        </template>
+        <template v-else-if="useDocx">
+          <p class="xs muted">데모에서는 올린 워드를 브라우저에서 바로 그려 보여 줍니다{{ docxPages ? '(' + docxPages + '쪽)' : '' }}. 워드와 조금 다를 수 있으며, 사내 서버에서는 워드로 만든 PDF로 보입니다.</p>
+          <DocxPages :src="d.docx" :anchors="reqs" :active-id="activeId" :area-mode="areaMode" @area="onArea" @pick="pick" @text="t => (pageText[t.no] = t.text)" @pages="n => (docxPages = n)" @error="docxFailed = true" />
         </template>
         <template v-else-if="d.pages && (!d.pdf || pdfError)">
           <DocPage v-for="pg in d.pages" :key="pg.no" :page="pg" :anchors="anchorsOn(pg.no)" :active-id="activeId" :area-mode="areaMode" @area="onArea" @pick="pick" />

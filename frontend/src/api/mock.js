@@ -2,7 +2,7 @@
 // 데이터는 이 브라우저에만 저장됩니다(localStorage). "처음 상태로 되돌리기"로 처음 상태로 돌아갑니다.
 import { buildSeed, toLocalIso, applyItems, cameraManual, lightManual } from './seed.js'
 import { DOC_STATUS, REQ_STATUS, can, isOverdue, fmtRev } from '../lib/status.js'
-import { productNameProblem } from '../lib/folders.js'
+import { productNameProblem, fileRule } from '../lib/folders.js'
 
 const KEY = 'manual-system-demo-v7'
 let db = load()
@@ -70,7 +70,7 @@ function decorateReq(r) {
 }
 // 요청이 걸린 블록이 인증 문구가 있는 절(안전 및 주의사항, EMC) 안에 있는지
 function blockCert(d, r) {
-  if (r.anchor?.rects || (r.anchor?.type === 'area' && pdfOf(d))) return !!r.cert
+  if (r.anchor?.rects || (r.anchor?.type === 'area' && (pdfOf(d) || docxOf(d)))) return !!r.cert
   if (!d.pages || !r.page) return false
   const pg = d.pages.find(p => p.no === r.page)
   if (!pg) return false
@@ -81,13 +81,22 @@ function blockCert(d, r) {
   }
   return r.anchor?.type === 'area' ? pg.blocks.some(b => b.type === 'h' && b.cert) : false
 }
-// 뷰어에 보여 줄 원본 모양(PDF): 이 작업의 마지막 버전 중 PDF 가 있는 것, 없으면 같은 파일 이름의 다른 버전 것
-function pdfOf(d) {
+// 뷰어에 보여 줄 원본 모양(PDF): 이 작업의 버전을 최근 것부터 거슬러 올라가 PDF 가 있는 첫 버전의 것.
+// 검토 요청본·최종본처럼 파일 없이 기록만 생기는 버전은 앞 버전의 모양을 그대로 쓴다.
+function viewOf(d, key) {
   const mine = db.versions.filter(v => v.docId === d.id)
-  const latest = mine.at(-1)
-  if (!latest) return null
-  return latest.pdf || db.versions.find(v => v.pdf && v.name === latest.name)?.pdf || null
+  for (let i = mine.length - 1; i >= 0; i--) {
+    const v = mine[i]
+    let hit = null
+    for (let x = v, n = 0; x && !hit && n < 20; x = db.versions.find(y => y.id === x.from), n++) hit = x[key] || db.versions.find(y => y[key] && y.name === x.name)?.[key]
+    if (hit) return hit
+    if (v.path || v.pdf || v.docx) return null // 실제 파일이 있는 새 버전인데 보기용이 없으면 옛 모양을 보여 주지 않는다
+  }
+  return null
 }
+const pdfOf = d => viewOf(d, 'pdf')
+// 데모: PDF 가 없을 때 브라우저에서 바로 그릴 .docx
+const docxOf = d => viewOf(d, 'docx')
 function runOf(id) {
   return db.aiRuns.find(r => r.id === id)
 }
@@ -96,10 +105,14 @@ function reqOf(id) {
   if (!r) throw new Error('요청을 찾을 수 없습니다.')
   return r
 }
-function addVersion(docId, kind, name, note, size = 4.3) {
-  const v = { id: nextId('version', 'v'), docId, kind, name, at: now(), userId: me.id, note, size }
+function addVersion(docId, kind, name, note, size = 4.3, from = null) {
+  const v = { id: nextId('version', 'v'), docId, kind, name, at: now(), userId: me.id, note, size, ...(from ? { from } : {}) }
   db.versions.push(v)
   return v
+}
+// 이 작업에서 마지막으로 내용이 바뀐 버전 (원본·AI 초안·검토본). 검토 요청·최종 검토는 이 파일을 기준으로 한다
+function latestContent(docId) {
+  return db.versions.filter(v => v.docId === docId && ['original', 'ai', 'review'].includes(v.kind)).at(-1) || null
 }
 function reviewers() {
   return db.users.filter(u => u.active && (u.role === 'reviewer' || u.role === 'final'))
@@ -274,7 +287,7 @@ export const api = {
     if (!Number.isInteger(n) || n < 0 || n > 99) return fail('Rev.는 0~99 사이 숫자로 적어 주세요.')
     const d = { id: nextId('doc', 'd'), productId, title: `${p.name} KO 사용설명서 ${fmtRev(n)} (기존 매뉴얼)`, status: 'deploy', held: null, ownerId: me.id, lock: null, createdAt: now(), pages: pages || cameraManual(p.name), manualLeft: [] }
     db.docs.push(d)
-    const v = addVersion(d.id, 'final', fileName, `기존 매뉴얼 등록 (${fmtRev(n)})`, Math.round((size || 0) / 1e5) / 10 || 0.1)
+    const v = addVersion(d.id, 'final', fileRule.final(p.docNo, n, fileName), `기존 매뉴얼 등록 (${fmtRev(n)}, 올린 파일: ${fileName})`, Math.round((size || 0) / 1e5) / 10 || 0.1)
     p.rev = n
     p.currentVersionId = v.id
     db.revs = db.revs.filter(r => !(r.productId === p.id && r.rev === n))
@@ -295,7 +308,7 @@ export const api = {
     const base = docOf(cur.docId)
     const d = { id: nextId('doc', 'd'), productId, title: `${p.name} KO 사용설명서 ${fmtRev(p.rev + 1)} 개정`, status: 'progress', held: null, ownerId: me.id, lock: null, createdAt: now(), pages: clone(base.pages), manualLeft: [] }
     db.docs.push(d)
-    addVersion(d.id, 'original', cur.name, `${fmtRev(p.rev)} 현재 사용본에서 개정 시작`, cur.size)
+    addVersion(d.id, 'original', cur.name, `${fmtRev(p.rev)} 현재 사용본에서 개정 시작`, cur.size, cur.id)
     log(d.id, `개정 시작: ${fmtRev(p.rev)} → ${fmtRev(p.rev + 1)} (진행 중)`)
     save()
     return wait(docSummary(d))
@@ -323,7 +336,8 @@ export const api = {
     r.status = 'applied'
     r.appliedAt = now()
     r.result = { applied: chosen.length - failed.length, failed: failed.map(f => ({ ...f, summary: r.items.find(i => i.no === f.no).summary })), manual: d.manualLeft.length }
-    addVersion(d.id, 'ai', `${productOf(d.productId).docNo}_AI초안.docx`, `AI 추천 ${r.result.applied}건 반영`)
+    const pa = productOf(d.productId)
+    addVersion(d.id, 'ai', fileRule.ai(pa.docNo, pa.rev + 1, now()), `AI 추천 ${r.result.applied}건 반영`)
     log(d.id, `AI 추천 ${r.items.length}건 중 ${r.result.applied}건 반영${failed.length ? `, 실패 ${failed.length}건` : ''}, 이미지 ${r.result.manual}건 수작업으로 남김`, true)
     save()
     return wait(r)
@@ -336,7 +350,7 @@ export const api = {
     const run = db.aiRuns.filter(r => r.docId === id).at(-1)
     const manual = d.manualLeft?.length && run ? run.items.filter(i => d.manualLeft.includes(i.no)) : []
     const latest = db.versions.filter(v => v.docId === id).at(-1)
-    return wait({ ...docSummary(d), pages: d.pages, pdf: pdfOf(d), ownerId: d.ownerId, manual, runId: run?.id || null, runStatus: run?.status || null, version: latest ? { ...latest, user: user(latest.userId) } : null })
+    return wait({ ...docSummary(d), pages: d.pages, pdf: pdfOf(d), docx: pdfOf(d) ? null : docxOf(d), ownerId: d.ownerId, manual, runId: run?.id || null, runStatus: run?.status || null, version: latest ? { ...latest, user: user(latest.userId) } : null })
   },
   async requests(docId) {
     return wait(db.requests.filter(r => r.docId === docId).sort((a, b) => a.no - b.no).map(decorateReq))
@@ -465,8 +479,8 @@ export const api = {
     if (!d.lock || d.lock.userId !== me.id) return fail('편집을 시작한 사람만 올릴 수 있습니다.')
     if (fileName && !/\.docx?$/i.test(fileName)) return fail('워드 파일(.docx, .doc)만 올릴 수 있습니다.')
     if (!note?.trim()) return fail('무엇을 바꿨는지 한 줄로 적어 주세요.')
-    const n = db.versions.filter(v => v.docId === docId && v.kind === 'review').length + 1
-    addVersion(docId, 'review', fileName || `${productOf(d.productId).docNo}_검토본_${n}.docx`, `편집본 올림: ${note.trim()}`)
+    const p = productOf(d.productId)
+    addVersion(docId, 'review', fileRule.review(p.docNo, p.rev + 1, now(), fileName), `편집본 올림: ${note.trim()}${fileName ? ` (올린 파일: ${fileName})` : ''}`)
     d.lock = null
     log(docId, `편집본 올림: ${note.trim()}`, true)
     save()
@@ -510,8 +524,9 @@ export const api = {
     if (d.held) return fail('보류를 먼저 해제해 주세요.')
     if (d.lock) return fail(`${user(d.lock.userId).name}님이 편집 중입니다.`)
     d.status = 'review'
-    addVersion(docId, 'review', `${productOf(d.productId).docNo}_검토요청본.docx`, '검토 요청 시점 버전')
-    log(docId, '검토 요청')
+    // 새 파일을 만들지 않는다. 지금 마지막 파일이 검토 대상이다
+    const base = latestContent(docId)
+    log(docId, `검토 요청${base ? ` (검토할 파일: ${base.name})` : ''}`)
     reviewers().forEach(u => notifyUser(u.id, `${productOf(d.productId).name} 사용설명서 검토 요청이 왔습니다.`, `/docs/${docId}`))
     save()
     return wait(docSummary(d))
@@ -523,8 +538,8 @@ export const api = {
     if (d.status !== 'review') return fail('검토 요청된 문서가 아닙니다.')
     if (ok) {
       d.status = 'final'
-      addVersion(docId, 'final', `${productOf(d.productId).docNo}_최종본.docx`, '최종 검토 완료')
-      log(docId, '최종 검토 완료', true)
+      const base = latestContent(docId)
+      log(docId, `최종 검토 완료${base ? ` (${base.name})` : ''}`, true)
       notifyUser(d.ownerId, `${productOf(d.productId).name} 사용설명서가 최종 검토 완료되었습니다.`, `/docs/${docId}`)
     } else {
       if (!reason?.trim()) return fail('반려 사유를 적어 주세요.')
@@ -548,9 +563,11 @@ export const api = {
     if (!can.finalize(me)) return fail('최종 검토자만 배포할 수 있습니다.')
     if (d.status !== 'final') return fail('최종 검토 완료된 문서만 배포할 수 있습니다.')
     if (!summary?.trim()) return fail('주요 변경사항을 적어 주세요.')
+    const base = latestContent(docId)
     p.rev += 1
     db.revs.push({ productId: p.id, rev: p.rev, summary: summary.trim(), at: now().slice(0, 10), userId: me.id })
-    const fin = db.versions.filter(v => v.docId === docId && v.kind === 'final').at(-1)
+    // 최종본: 마지막 파일을 Rev. 이름으로 남긴다 (내용은 그 파일 그대로)
+    const fin = addVersion(docId, 'final', fileRule.final(p.docNo, p.rev, base?.name), `${fmtRev(p.rev)} 최종본${base ? ` (${base.name})` : ''}`, base?.size, base?.id)
     p.currentVersionId = fin.id
     d.status = 'deploy'
     log(docId, `배포: ${fmtRev(p.rev)} (${summary.trim()})`, true)

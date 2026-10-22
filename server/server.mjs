@@ -147,8 +147,14 @@ function sessionOf(req) {
 const { SUBFOLDERS, isProductFolder, safeName: safe, stamp } = await import('../frontend/src/lib/folders.js')
 const productOf = id => db().products.find(p => p.id === id)
 const docOf = id => db().docs.find(d => d.id === id)
-function writeFileToNas(product, folder, name, buf) {
-  const rel = path.join(safe(product.name), folder, `${stamp()}_${safe(name)}`)
+// exact: 파일 이름 규칙으로 정한 이름 그대로 쓴다(같은 이름이 있으면 뒤에 시각을 붙인다). 아니면 시각_원래이름
+function nasRel(product, folder, name, exact) {
+  let rel = path.join(safe(product.name), folder, exact ? safe(name) : `${stamp()}_${safe(name)}`)
+  if (exact && fs.existsSync(path.join(FILES, rel))) rel = rel.replace(/(\.docx?)$/i, `_${stamp()}$1`)
+  return rel
+}
+function writeFileToNas(product, folder, name, buf, exact = false) {
+  const rel = nasRel(product, folder, name, exact)
   const full = path.join(FILES, rel)
   try {
     fs.mkdirSync(path.dirname(full), { recursive: true })
@@ -209,14 +215,17 @@ function linkVersionFiles() {
   for (const v of d.versions) {
     if (v.path || v.nofile) continue
     const withFile = d.versions.filter(x => x.path && x.at <= v.at && x.id !== v.id)
-    const src = withFile.filter(x => x.name === v.name || v.name.startsWith(x.name + ' ')).at(-1) || withFile.filter(x => x.docId === v.docId).at(-1)
+    // 바탕 파일: from(개정 시작 원본, 배포 최종본)을 따라가고, 없으면 같은 이름·같은 작업의 마지막 파일
+    let src = null
+    for (let x = v, n = 0; x?.from && !src && n < 20; n++) { x = d.versions.find(y => y.id === x.from); if (x?.path) src = x }
+    src = src || withFile.filter(x => x.name === v.name || v.name.startsWith(x.name + ' ')).at(-1) || withFile.filter(x => x.docId === v.docId).at(-1)
     changed = true
     if (!src) { v.nofile = true; continue }
     if (v.kind === 'final') {
       const doc = docOf(v.docId)
       const p = productOf(doc.productId)
       try {
-        const rel = path.join(safe(p.name), '최종본', `${stamp()}_${safe(p.docNo)}_${fmtRev(p.rev + 1)}_최종본.docx`)
+        const rel = nasRel(p, '최종본', v.name, true)
         fs.mkdirSync(path.dirname(path.join(FILES, rel)), { recursive: true })
         fs.copyFileSync(path.join(FILES, src.path), path.join(FILES, rel))
         v.path = rel
@@ -407,11 +416,18 @@ route('POST', '/docs/:id/upload', async ({ params, body, sess }) => {
     fs.rmSync(path.join(FILES, rel), { force: true })
     throw e
   }
-  db().versions.filter(v => v.docId === d.id && v.kind === 'review').at(-1).path = rel
+  // 검토본은 파일 이름 규칙(문서번호_Rev._검토_날짜시각)으로 바꿔 둔다
+  const rv = db().versions.filter(v => v.docId === d.id && v.kind === 'review').at(-1)
+  rv.path = rel
+  try {
+    const named = nasRel(productOf(d.productId), '검토본', rv.name, true)
+    fs.renameSync(path.join(FILES, rel), path.join(FILES, named))
+    rv.path = named
+  } catch (e) { console.error('[검토본 이름 바꾸기 실패]', e.message) }
   const pages = /\.docx$/i.test(f.name) && pagesOf(f.buf)
   if (pages) d.pages = pages
   server.save()
-  previews.request(rel)
+  previews.request(rv.path)
   return r
 })
 route('POST', '/products/:id/import', async ({ params, body, sess }) => {
@@ -426,7 +442,7 @@ route('POST', '/products/:id/import', async ({ params, body, sess }) => {
   const r = await as(sess.userId, () => api.importManual(params.id, { fileName: f.name, size: f.size, rev: body.fields.rev, pages }))
   const v = db().versions.find(x => x.id === p.currentVersionId)
   try {
-    v.path = writeFileToNas(p, '최종본', f.name, f.buf)
+    v.path = writeFileToNas(p, '최종본', v.name, f.buf, true)
   } catch (e) {
     v.nofile = true
     server.save()
@@ -457,7 +473,8 @@ function sendFile(res, rel, name) {
   fs.createReadStream(full).pipe(res)
   return undefined
 }
-const fileName = v => (v.path ? path.basename(v.path).replace(/^\d{8}-\d{6}_/, '') : v.name)
+// 내려받는 이름: 버전은 파일 이름 규칙으로 정한 이름(최종본 Rev., 검토본 날짜)
+const fileName = v => v.name || (v.path ? path.basename(v.path).replace(/^\d{8}-\d{6}_/, '') : '')
 route('GET', '/versions/:id/file', ({ params, res }) => {
   const v = db().versions.find(x => x.id === params.id)
   if (!v) throw new HttpError(404, '버전을 찾을 수 없습니다.')

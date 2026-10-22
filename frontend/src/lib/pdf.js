@@ -50,6 +50,9 @@ export async function idbPut(key, blob) {
     t.onerror = () => no(t.error)
   })
 }
+export async function readStored(src) {
+  return src.startsWith('idb:') ? idbGet(src.slice(4)) : (await fetch(new URL(src, base()).href, { credentials: 'include' })).blob()
+}
 async function idbGet(key) {
   const db = await idb()
   return new Promise((ok, no) => {
