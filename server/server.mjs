@@ -10,6 +10,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { docxToPages } from './docx.mjs'
+import { createPreviews } from './preview.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const cfgPath = process.env.MANUAL_CONFIG || path.join(HERE, 'config.json')
@@ -23,6 +24,8 @@ const cfg = {
   admins: [],
   sessionHours: 12,
   backupDays: 30,
+  preview: 'auto', // 뷰어의 원본 모양(PDF): auto(워드, 없으면 LibreOffice) / word / libreoffice / off
+  sofficePath: '',
   ...(fs.existsSync(cfgPath) ? JSON.parse(fs.readFileSync(cfgPath, 'utf8').replace(/^﻿/, '')) : {}),
 }
 const abs = p => (path.isAbsolute(p) || /^\\\\/.test(p) ? p : path.resolve(path.dirname(cfgPath), p))
@@ -30,6 +33,7 @@ const DATA = abs(cfg.dataDir)
 const FILES = abs(cfg.filesDir)
 const DIST = process.env.MANUAL_DIST || path.resolve(HERE, '../frontend/dist')
 fs.mkdirSync(DATA, { recursive: true })
+const previews = createPreviews({ dataDir: DATA, filesDir: FILES, mode: cfg.preview, sofficePath: cfg.sofficePath })
 
 // ── 앱 데이터 저장: mock.js 가 쓰는 localStorage 를 파일로 바꿔 끼운다 ──────────
 const DB_FILE = path.join(DATA, 'db.json')
@@ -224,6 +228,7 @@ function linkVersionFiles() {
   }
   if (changed) server.save()
 }
+const DOC_ONLY_PAGES = [{ no: 1, blocks: [{ id: 'p1-b1', type: 'p', text: '.doc 파일은 글자 미리보기를 만들지 않습니다. 원본 모양(PDF)이 만들어지면 여기에 보입니다.' }] }]
 function pagesOf(buf) {
   try {
     return docxToPages(buf, db().settings.sections.filter(s => s.cert).map(s => s.title))
@@ -298,7 +303,6 @@ const simple = [
   ['POST', '/products/:id/revisions', ({ id }) => api.startRevision(id)],
   ['GET', '/ai/:id', ({ id }) => api.aiRun(id)],
   ['POST', '/ai/:id/apply', ({ id }, b) => api.applyAi(id, b.checked || [])],
-  ['GET', '/docs/:id', ({ id }) => api.doc(id)],
   ['GET', '/docs/:id/requests', ({ id }) => api.requests(id)],
   ['POST', '/docs/:id/requests', ({ id }, b) => api.createRequest(id, b)],
   ['POST', '/docs/:id/lock', ({ id }) => api.startEdit(id)],
@@ -362,6 +366,20 @@ route('GET', '/products/:id/folder/file', ({ params, req, res }) => {
   return sendFile(res, path.join(safe(p.name), sub, name), name.replace(/^\d{8}-\d{6}_/, ''))
 })
 
+// 문서 보기: 마지막 저장 파일의 원본 모양(PDF)을 함께 알려 준다. 처음 보는 파일이면 이때 만들기 시작한다
+route('GET', '/docs/:id', async ({ params, sess }) => {
+  const r = await as(sess.userId, () => api.doc(params.id))
+  const v = db().versions.filter(x => x.docId === params.id && x.path).at(-1)
+  return { ...r, pdf: null, ...(v ? previews.status(v.path) : {}) }
+})
+route('GET', '/previews/:key', ({ params, res }) => {
+  const full = previews.file(params.key)
+  if (!full) throw new HttpError(404, '원본 모양(PDF)이 아직 없습니다.')
+  res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Length': fs.statSync(full).size, 'Cache-Control': 'private, max-age=86400' })
+  fs.createReadStream(full).pipe(res)
+  return undefined
+})
+
 // 파일이 오가는 요청
 route('POST', '/docs/:id/files', async ({ params, body, sess }) => {
   const f = body.files?.[0]
@@ -378,8 +396,8 @@ route('POST', '/docs/:id/upload', async ({ params, body, sess }) => {
   const f = body.files?.[0]
   const d = docOf(params.id)
   if (!d) throw new HttpError(404, '문서를 찾을 수 없습니다.')
-  if (!f) throw new HttpError(400, '고친 DOCX 파일을 골라 주세요.')
-  if (!/\.docx$/i.test(f.name)) throw new HttpError(400, 'DOCX 파일만 올릴 수 있습니다.')
+  if (!f) throw new HttpError(400, '고친 워드 파일을 골라 주세요.')
+  if (!/\.docx?$/i.test(f.name)) throw new HttpError(400, '워드 파일(.docx, .doc)만 올릴 수 있습니다.')
   if (!d.lock || d.lock.userId !== sess.userId) throw new HttpError(400, '편집을 시작한 사람만 올릴 수 있습니다.')
   const rel = writeFileToNas(productOf(d.productId), '검토본', f.name, f.buf)
   let r
@@ -390,17 +408,19 @@ route('POST', '/docs/:id/upload', async ({ params, body, sess }) => {
     throw e
   }
   db().versions.filter(v => v.docId === d.id && v.kind === 'review').at(-1).path = rel
-  const pages = pagesOf(f.buf)
+  const pages = /\.docx$/i.test(f.name) && pagesOf(f.buf)
   if (pages) d.pages = pages
   server.save()
+  previews.request(rel)
   return r
 })
 route('POST', '/products/:id/import', async ({ params, body, sess }) => {
   const f = body.files?.[0]
   const p = productOf(params.id)
   if (!p) throw new HttpError(404, '제품을 찾을 수 없습니다.')
-  if (!f || !/\.docx$/i.test(f.name)) throw new HttpError(400, 'DOCX 파일을 골라 주세요.')
-  const pages = pagesOf(f.buf)
+  if (!f || !/\.docx?$/i.test(f.name)) throw new HttpError(400, '워드 파일(.docx, .doc)을 골라 주세요.')
+  // .doc 는 글자 미리보기를 만들지 않고 원본 모양(PDF)으로만 본다
+  const pages = /\.doc$/i.test(f.name) ? DOC_ONLY_PAGES : pagesOf(f.buf)
   if (!pages) throw new HttpError(400, '워드 파일을 읽지 못했습니다. 다른 이름으로 저장(.docx)한 뒤 다시 올려 주세요.')
   // 먼저 규칙 확인(권한, 열린 작업, Rev. 번호) 뒤 파일을 쓴다
   const r = await as(sess.userId, () => api.importManual(params.id, { fileName: f.name, size: f.size, rev: body.fields.rev, pages }))
@@ -413,6 +433,7 @@ route('POST', '/products/:id/import', async ({ params, body, sess }) => {
     throw e
   }
   server.save()
+  previews.request(v.path)
   return r
 })
 route('POST', '/products/:id/ai', async ({ params, body, sess }) => {
@@ -459,7 +480,7 @@ route('GET', '/docs/:id/file', ({ params, res }) => {
   return sendFile(res, v.path, fileName(v))
 })
 
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' }
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2' }
 function serveStatic(req, res) {
   const u = decodeURIComponent(new URL(req.url, 'http://x').pathname)
   let full = path.join(DIST, path.normalize(u).replace(/^(\.\.[/\\])+/, ''))
@@ -494,9 +515,15 @@ const srv = http.createServer(async (req, res) => {
   }
 })
 const startup = ensureAllFolders()
+// 서버가 켜질 때, 각 문서의 마지막 파일 중 원본 모양(PDF)이 없는 것을 차례로 만든다
+for (const dd of db().docs) {
+  const v = db().versions.filter(x => x.docId === dd.id && x.path).at(-1)
+  if (v) previews.request(v.path)
+}
 srv.listen(cfg.port, () => {
   console.log(`AI 매뉴얼 협업시스템: http://localhost:${cfg.port}`)
   console.log(`  앱 데이터: ${DB_FILE}`)
   console.log(`  매뉴얼 파일(NAS): ${FILES}${fs.existsSync(FILES) ? (startup.created ? `  (제품 폴더 ${startup.created}개 새로 만듦)` : '') : '  ← 아직 연결되지 않음'}`)
+  console.log(`  뷰어 원본 모양(PDF): ${cfg.preview === 'off' ? '끔' : previews.how}`)
   console.log(`  로그인: ${cfg.auth === 'local' ? '시험용 공용 비밀번호' : 'NAS 계정 (' + (cfg.nas.url || '주소 없음') + ')'}`)
 })

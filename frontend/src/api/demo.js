@@ -4,6 +4,7 @@
 import { api as mock, server } from './mock.js'
 import * as folder from './localFolder.js'
 import { safeName, stamp, SUBFOLDERS } from '../lib/folders.js'
+import { idbPut } from '../lib/pdf.js'
 
 const db = () => server.db()
 const productOf = id => db().products.find(p => p.id === id)
@@ -111,8 +112,12 @@ export const api = {
   },
   async uploadEdit(docId, args) {
     const r = await mock.uploadEdit(docId, args)
+    const v = db().versions.filter(x => x.docId === docId && x.kind === 'review').at(-1)
     const rel = await put(productOf(docOf(docId).productId), '검토본', args.file)
-    if (rel) { db().versions.filter(v => v.docId === docId && v.kind === 'review').at(-1).path = rel; server.save() }
+    if (rel) v.path = rel
+    // 사내 서버는 워드를 PDF 로 자동 변환한다. 데모는 함께 올린 PDF 를 이 브라우저에 보관해 뷰어에 쓴다
+    if (args.pdf instanceof Blob) { await idbPut(v.id, args.pdf); v.pdf = 'idb:' + v.id }
+    server.save()
     return r
   },
 }

@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, shallowRef, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api, isDemo } from '../api/index.js'
 import { session, attempt, notify } from '../store.js'
 import Chip from '../components/Chip.vue'
 import DocPage from '../components/DocPage.vue'
+import PdfPage from '../components/PdfPage.vue'
+import { openPdf } from '../lib/pdf.js'
 import AreaThumb from '../components/AreaThumb.vue'
 import { REQ_STATUS, can, fmtDate, fmtDateTime, isOverdue } from '../lib/status.js'
 
@@ -27,10 +29,17 @@ const work = ref({}) // 카드별 입력값
 const previewRef = ref(null)
 
 const me = computed(() => session.user)
+let pendingTimer = null
+let pendingTries = 0
+onBeforeUnmount(() => clearTimeout(pendingTimer))
 async function load() {
   const [dd, rr, us, st] = await Promise.all([api.doc(props.id), api.requests(props.id), api.users(), api.settings()])
   d.value = dd
   reqs.value = rr
+  loadPdf(dd.pdf)
+  // 사내 서버가 원본 모양(PDF)을 만드는 중이면 잠시 뒤 다시 확인한다
+  clearTimeout(pendingTimer)
+  if (dd.previewPending && pendingTries++ < 60) pendingTimer = setTimeout(async () => { const x = await api.doc(props.id).catch(() => null); if (x && d.value) { d.value = { ...d.value, pdf: x.pdf, previewPending: x.previewPending, previewError: x.previewError }; loadPdf(x.pdf); if (x.previewPending) load() } }, 4000)
   users.value = us
   settings.value = st
 }
@@ -41,6 +50,29 @@ onMounted(async () => {
 })
 onBeforeUnmount(() => document.removeEventListener('selectionchange', onSelChange))
 watch(() => route.query.req, id => id && pick(id))
+
+// ── 원본 모양(PDF) 보기: 워드를 PDF 로 바꾼 쪽을 그대로 그린다. 없으면 글자 블록으로 보여 준다 ──
+const pdfDoc = shallowRef(null)
+const pdfError = ref('')
+const pageText = ref({})
+let pdfSrc = null
+async function loadPdf(src) {
+  if (src === pdfSrc) return
+  pdfSrc = src
+  pdfDoc.value = null
+  pdfError.value = ''
+  if (!src) return
+  try {
+    const doc = await openPdf(src)
+    if (pdfSrc === src) pdfDoc.value = doc
+  } catch (e) {
+    if (pdfSrc === src) pdfError.value = '원본 모양(PDF)을 불러오지 못해 글자만 보여 줍니다.'
+  }
+}
+const pdfPages = computed(() => (pdfDoc.value ? Array.from({ length: pdfDoc.value.numPages }, (_, i) => i + 1) : []))
+const hasView = computed(() => d.value && (d.value.pages || d.value.pdf))
+// PDF 쪽에서는 인증 문구가 있는 절을 쪽 글자로 찾는다
+const CERT_WORDS = ['주의사항', '전자기 적합성', '전자파 적합성', 'EMC']
 
 // ── 역할 ──
 const isOwner = computed(() => d.value && (d.value.ownerId === me.value.id || me.value.admin))
@@ -78,6 +110,20 @@ function onMouseUp() {
     const sel = document.getSelection()
     const quote = sel?.toString().trim()
     if (!quote) return
+    const pa = sel.anchorNode?.parentElement?.closest('[data-pdf-page]')
+    if (pa || sel.focusNode?.parentElement?.closest('[data-pdf-page]')) {
+      if (pa !== sel.focusNode?.parentElement?.closest('[data-pdf-page]')) return notify('한 쪽 안에서 골라 주세요.', 'error')
+      const b = pa.getBoundingClientRect()
+      const rects = [...sel.getRangeAt(0).getClientRects()]
+        .filter(r => r.width > 1 && r.height > 1)
+        .map(r => ({ x: (r.left - b.left) / b.width, y: (r.top - b.top) / b.height, w: r.width / b.width, h: r.height / b.height }))
+        .map(r => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, Math.round(v * 10000) / 10000])))
+        .slice(0, 40)
+      if (!rects.length) return
+      const rect = sel.getRangeAt(0).getBoundingClientRect()
+      menu.value = { x: Math.min(rect.left + rect.width / 2, window.innerWidth - 150), y: rect.top, anchor: { type: 'text', quote: quote.replace(/\s+/g, ' ').slice(0, 200), rects }, page: Number(pa.dataset.page) }
+      return
+    }
     const a = sel.anchorNode?.parentElement?.closest('[data-block]')
     const b = sel.focusNode?.parentElement?.closest('[data-block]')
     if (!a || a !== b) return notify('한 문단(또는 표 하나) 안에서 골라 주세요.', 'error')
@@ -96,6 +142,7 @@ function onArea({ page, rect }) {
   openComposer('request', { type: 'area', rect }, page)
 }
 function certOf(anchor, page) {
+  if (pdfDoc.value) return CERT_WORDS.some(w => (pageText.value[page] || '').includes(w))
   const pg = d.value.pages?.find(p => p.no === page)
   if (!pg) return false
   if (anchor.type === 'area') return pg.blocks.some(b => b.type === 'h' && b.cert)
@@ -108,7 +155,7 @@ function certOf(anchor, page) {
 }
 async function send() {
   const c = composer.value
-  const r = await attempt(() => api.createRequest(props.id, { kind: c.mode, page: c.page, anchor: c.anchor, ...c.form }), c.mode === 'request' ? '요청을 보냈습니다. 담당자에게 알림이 갑니다.' : c.mode === 'memo' ? '메모를 남겼습니다.' : null)
+  const r = await attempt(() => api.createRequest(props.id, { kind: c.mode, page: c.page, anchor: c.anchor, cert: certOf(c.anchor, c.page), ...c.form }), c.mode === 'request' ? '요청을 보냈습니다. 담당자에게 알림이 갑니다.' : c.mode === 'memo' ? '메모를 남겼습니다.' : null)
   if (!r) return
   composer.value = null
   await load()
@@ -138,7 +185,7 @@ function startEditReq(r) {
 }
 
 // ── 문서 동작 ──
-const upload = ref({ file: null, note: '' })
+const upload = ref({ file: null, pdf: null, note: '' })
 const panelText = ref('')
 function openPanel(kind) {
   panel.value = panel.value === kind ? null : kind
@@ -154,7 +201,7 @@ async function docAct(fn, ok) {
   }
 }
 const startEdit = () => docAct(() => api.startEdit(props.id).then(r => { if (!isDemo) download(); return r }), isDemo ? '편집을 시작했습니다. 다른 사람은 편집할 수 없습니다. (데모라서 실제 파일은 내려받지 않습니다)' : '편집을 시작했습니다. 내려받은 파일을 워드로 고친 뒤 올려 주세요.')
-const sendUpload = () => docAct(() => api.uploadEdit(props.id, { file: upload.value.file, fileName: upload.value.file?.name, note: upload.value.note }), '편집본을 올렸습니다. 잠금을 풀었습니다.').then(() => (upload.value = { file: null, note: '' }))
+const sendUpload = () => docAct(() => api.uploadEdit(props.id, { file: upload.value.file, fileName: upload.value.file?.name, pdf: upload.value.pdf, note: upload.value.note }), '편집본을 올렸습니다. 잠금을 풀었습니다.').then(() => (upload.value = { file: null, pdf: null, note: '' }))
 const cancelEdit = () => docAct(() => api.cancelEdit(props.id), '잠금을 풀었습니다.')
 const hold = () => docAct(() => api.setHold(props.id, panelText.value), '보류했습니다.')
 const unhold = () => docAct(() => api.setHold(props.id, null), '보류를 풀었습니다.')
@@ -193,7 +240,7 @@ function toggleArea() {
           <router-link :to="'/docs/' + d.id + '/history'" class="small">버전·이력</router-link>
         </div>
       </div>
-      <div class="row actions" v-if="d.pages">
+      <div class="row actions" v-if="hasView">
         <template v-if="d.status === 'progress'">
           <button v-if="lockMine" class="btn primary" @click="openPanel('upload')">편집본 올리기</button>
           <button v-if="lockMine" class="btn" @click="cancelEdit">편집 취소</button>
@@ -222,7 +269,8 @@ function toggleArea() {
     <section v-if="panel" class="panel inline-panel">
       <div class="panel-body stack">
         <template v-if="panel === 'upload'">
-          <label class="field">워드로 고친 파일 (DOCX)<input id="up-file" type="file" accept=".docx" @change="e => (upload.file = e.target.files[0])" /></label>
+          <label class="field">워드로 고친 파일 (.docx, .doc)<input id="up-file" type="file" accept=".docx,.doc" @change="e => (upload.file = e.target.files[0])" /></label>
+          <label v-if="isDemo" class="field">같은 파일을 PDF로 저장한 것 (선택)<span class="hint">사내 서버는 올린 워드를 자동으로 PDF로 바꿔 뷰어에 원본 모양 그대로 보여 줍니다. 데모에는 그 변환기가 없어서, 워드에서 [다른 이름으로 저장 &gt; PDF]로 만든 파일을 함께 올리면 같은 화면을 볼 수 있습니다.</span><input id="up-pdf" type="file" accept=".pdf" @change="e => (upload.pdf = e.target.files[0])" /></label>
           <label class="field"><span class="req">무엇을 바꿨나요</span><span class="hint">변경 이력에 남습니다. 예: 클립 마운트 명칭 정리</span><input id="up-note" type="text" v-model="upload.note" /></label>
           <div class="row"><button class="btn primary" @click="sendUpload">올리기</button><button class="btn ghost" @click="panel = null">닫기</button><span v-if="isDemo" class="xs muted">데모에서는 파일 없이 올려도 됩니다.</span></div>
         </template>
@@ -242,7 +290,7 @@ function toggleArea() {
     </section>
 
     <!-- 안내 띠 -->
-    <div v-if="!d.pages" class="band">
+    <div v-if="!hasView" class="band">
       AI 분석 결과를 아직 반영하지 않았습니다. <router-link v-if="d.runId" :to="'/ai/' + d.runId">변경 추천 검토로 가기</router-link>
     </div>
     <div v-if="d.lock && !lockMine" class="band warn">🔒 {{ d.lock.user.name }}님이 {{ fmtDateTime(d.lock.at) }}부터 편집 중입니다. 편집이 끝날 때까지 다른 사람은 편집할 수 없습니다.</div>
@@ -252,10 +300,17 @@ function toggleArea() {
     <div v-if="d.manual.length" class="band">이미지 {{ d.manual.length }}건은 수작업이 필요합니다: <span v-for="m in d.manual" :key="m.no" class="tag" style="margin-left: 4px">p.{{ m.page }} {{ m.summary }}</span></div>
     <div v-if="d.status === 'progress' && !settings.reviewFlow" class="band">검토·배포 단계는 아직 쓰지 않도록 설정되어 있습니다(관리 &gt; 기본값).</div>
 
-    <div class="layout" v-if="d.pages">
+    <div class="layout" v-if="hasView">
       <div class="preview" ref="previewRef" @mouseup="onMouseUp" @touchend="onMouseUp">
-        <p class="xs muted hint-line">문장을 드래그하면 [수정 요청] [메모] [AI에게 질문]이 나타납니다.</p>
-        <DocPage v-for="pg in d.pages" :key="pg.no" :page="pg" :anchors="anchorsOn(pg.no)" :active-id="activeId" :area-mode="areaMode" @area="onArea" @pick="pick" />
+        <p class="xs muted hint-line">문장을 드래그하면 [수정 요청] [메모] [AI에게 질문]이 나타납니다.<template v-if="pdfDoc"> 워드 원본 모양 그대로 보여 줍니다({{ pdfDoc.numPages }}쪽).</template><template v-else-if="d.pdf && !pdfError"> 원본 모양을 불러오는 중…</template></p>
+        <p v-if="d.previewPending && !pdfDoc" class="band info small">워드 파일을 원본 모양(PDF)으로 바꾸는 중입니다. 다 되면 이 화면이 저절로 바뀝니다. 그동안은 글자만 보여 줍니다.</p>
+        <p v-if="pdfError || d.previewError" class="xs muted">{{ pdfError || d.previewError }}</p>
+        <template v-if="pdfDoc">
+          <PdfPage v-for="n in pdfPages" :key="d.pdf + n" :pdf="pdfDoc" :no="n" :anchors="anchorsOn(n)" :active-id="activeId" :area-mode="areaMode" @area="onArea" @pick="pick" @text="t => (pageText[t.no] = t.text)" />
+        </template>
+        <template v-else-if="d.pages && (!d.pdf || pdfError)">
+          <DocPage v-for="pg in d.pages" :key="pg.no" :page="pg" :anchors="anchorsOn(pg.no)" :active-id="activeId" :area-mode="areaMode" @area="onArea" @pick="pick" />
+        </template>
       </div>
 
       <aside class="side panel">

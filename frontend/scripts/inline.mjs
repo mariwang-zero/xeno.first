@@ -1,5 +1,5 @@
 // dist-demo/index.html 의 JS·CSS 를 한 파일에 넣어 Artifact 로 올릴 수 있게 만든다.
-import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, cpSync, existsSync } from 'node:fs'
 const dir = new URL('../dist-demo/', import.meta.url)
 let html = readFileSync(new URL('index.html', dir), 'utf8')
 const assets = readdirSync(new URL('assets/', dir))
@@ -18,4 +18,6 @@ if (process.argv.includes('--pages')) {
   const page = `<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="UTF-8" />\n<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />\n<meta name="description" content="제품 매뉴얼의 초안, 수정 요청, 개정을 관리하는 사내 도구 데모 (예시 데이터)" />\n${out.replace('<div id="app"></div>', '</head>\n<body>\n<div id="app"></div>')}</body>\n</html>\n`
   writeFileSync(new URL('../../index.html', import.meta.url), page)
   console.log('../index.html written')
+  // pdf.js (뷰어의 원본 모양 보기) 는 한 파일에 넣지 않고 옆에 둔다
+  if (existsSync(new URL('vendor/', dir))) cpSync(new URL('vendor/', dir), new URL('../../vendor/', import.meta.url), { recursive: true })
 }

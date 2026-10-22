@@ -4,7 +4,7 @@ import { buildSeed, toLocalIso, applyItems, cameraManual, lightManual } from './
 import { DOC_STATUS, REQ_STATUS, can, isOverdue, fmtRev } from '../lib/status.js'
 import { productNameProblem } from '../lib/folders.js'
 
-const KEY = 'manual-system-demo-v6'
+const KEY = 'manual-system-demo-v7'
 let db = load()
 let me = null
 
@@ -70,6 +70,7 @@ function decorateReq(r) {
 }
 // 요청이 걸린 블록이 인증 문구가 있는 절(안전 및 주의사항, EMC) 안에 있는지
 function blockCert(d, r) {
+  if (r.anchor?.rects || (r.anchor?.type === 'area' && pdfOf(d))) return !!r.cert
   if (!d.pages || !r.page) return false
   const pg = d.pages.find(p => p.no === r.page)
   if (!pg) return false
@@ -79,6 +80,13 @@ function blockCert(d, r) {
     if (r.anchor?.blockId === b.id) return cert
   }
   return r.anchor?.type === 'area' ? pg.blocks.some(b => b.type === 'h' && b.cert) : false
+}
+// 뷰어에 보여 줄 원본 모양(PDF): 이 작업의 마지막 버전 중 PDF 가 있는 것, 없으면 같은 파일 이름의 다른 버전 것
+function pdfOf(d) {
+  const mine = db.versions.filter(v => v.docId === d.id)
+  const latest = mine.at(-1)
+  if (!latest) return null
+  return latest.pdf || db.versions.find(v => v.pdf && v.name === latest.name)?.pdf || null
 }
 function runOf(id) {
   return db.aiRuns.find(r => r.id === id)
@@ -258,7 +266,7 @@ export const api = {
   async importManual(productId, { fileName, size, rev, pages }) {
     requireMe()
     if (!can.aiDraft(me) && !me.admin) return fail('문서 담당자나 관리자만 등록할 수 있습니다.')
-    if (!fileName || !/\.docx$/i.test(fileName)) return fail('DOCX 파일을 골라 주세요.')
+    if (!fileName || !/\.docx?$/i.test(fileName)) return fail('워드 파일(.docx, .doc)을 골라 주세요.')
     const p = productOf(productId)
     const open = db.docs.find(d => d.productId === productId && d.status !== 'deploy')
     if (open) return fail(`진행 중인 작업이 있어 등록할 수 없습니다: ${open.title}`)
@@ -328,7 +336,7 @@ export const api = {
     const run = db.aiRuns.filter(r => r.docId === id).at(-1)
     const manual = d.manualLeft?.length && run ? run.items.filter(i => d.manualLeft.includes(i.no)) : []
     const latest = db.versions.filter(v => v.docId === id).at(-1)
-    return wait({ ...docSummary(d), pages: d.pages, ownerId: d.ownerId, manual, runId: run?.id || null, runStatus: run?.status || null, version: latest ? { ...latest, user: user(latest.userId) } : null })
+    return wait({ ...docSummary(d), pages: d.pages, pdf: pdfOf(d), ownerId: d.ownerId, manual, runId: run?.id || null, runStatus: run?.status || null, version: latest ? { ...latest, user: user(latest.userId) } : null })
   },
   async requests(docId) {
     return wait(db.requests.filter(r => r.docId === docId).sort((a, b) => a.no - b.no).map(decorateReq))
@@ -348,7 +356,7 @@ export const api = {
       id: nextId('req', 'q'), no, docId, kind, page: data.page, anchor: data.anchor, title: (data.title || '').trim(), body: data.body.trim(),
       reason: data.reason || '', doneWhen: data.doneWhen || '', due: data.due || null,
       requesterId: me.id, assigneeId: kind === 'request' ? data.assigneeId : null,
-      status: kind === 'request' ? 'requested' : 'closed', resolution: '', comments: [], createdAt: now(), startedAt: null, doneAt: null, closedAt: null,
+      cert: !!data.cert, status: kind === 'request' ? 'requested' : 'closed', resolution: '', comments: [], createdAt: now(), startedAt: null, doneAt: null, closedAt: null,
     }
     if (kind === 'ai') {
       // 데모: 등록 자료 밖의 내용은 지어내지 않는다는 원칙을 보여 주는 고정 답
@@ -455,7 +463,7 @@ export const api = {
     requireMe()
     const d = docOf(docId)
     if (!d.lock || d.lock.userId !== me.id) return fail('편집을 시작한 사람만 올릴 수 있습니다.')
-    if (fileName && !/\.docx$/i.test(fileName)) return fail('DOCX 파일만 올릴 수 있습니다.')
+    if (fileName && !/\.docx?$/i.test(fileName)) return fail('워드 파일(.docx, .doc)만 올릴 수 있습니다.')
     if (!note?.trim()) return fail('무엇을 바꿨는지 한 줄로 적어 주세요.')
     const n = db.versions.filter(v => v.docId === docId && v.kind === 'review').length + 1
     addVersion(docId, 'review', fileName || `${productOf(d.productId).docNo}_검토본_${n}.docx`, `편집본 올림: ${note.trim()}`)

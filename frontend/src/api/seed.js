@@ -74,6 +74,8 @@ export function applyItems(pgs, items) {
 }
 
 import { LT_PAGES } from './ltManual.js'
+// 워드에서 PDF 로 저장한 LooksCAM LT 설명서 (뷰어의 원본 모양 보기). 저장소 맨 위 manuals/ 에 있다
+const LT_PDF = 'manuals/LooksCAM-LT_V0_1.pdf'
 
 // 시연용 데이터: 11개 제품은 배포된 최신 한글판만 등록되어 있고, LooksCAM LT 만 다음 개정이 진행 중이다.
 // 공개 데모라서 LooksCAM LT 외 매뉴얼 본문은 싣지 않는다(실제 본문은 사내 서버에서만). 사람 이름은 가명.
@@ -131,7 +133,7 @@ export function buildSeed() {
     const pr = products.find(x => x.id === pid)
     const docId = 'dk' + (i + 1), vId = 'vk' + (i + 1), when = date + 'T09:00:00'
     docs.push({ id: docId, productId: pid, title: `${pr.name} KO 사용설명서 Rev.01 (최신 한글판)`, status: 'deploy', held: null, ownerId: 'u1', lock: null, createdAt: when, pages: pid === 'p9' ? LT_PAGES : notice(pr.name), manualLeft: [] })
-    versions.push({ id: vId, docId, kind: 'final', name: file, at: when, userId: 'u1', note: '최신 한글판 등록', size })
+    versions.push({ id: vId, docId, kind: 'final', name: file, at: when, userId: 'u1', note: '최신 한글판 등록', size, ...(pid === 'p9' ? { pdf: LT_PDF } : {}) })
     revs.push({ productId: pid, rev: 1, summary: `최신 한글판 등록: ${file}`, at: date, userId: 'u1' })
     activity.push({ docId, at: when, userId: 'u1', text: `최신 한글판 등록: ${file}`, change: true })
     pr.currentVersionId = vId

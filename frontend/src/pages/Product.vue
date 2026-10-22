@@ -92,7 +92,7 @@ async function onImport(e) {
         <button class="btn" @click="pickFile">참고자료 등록</button>
         <input ref="fileInput" type="file" hidden @change="onFile" />
         <button v-if="canImport" class="btn" @click="importInput.click()">기존 매뉴얼 등록</button>
-        <input ref="importInput" type="file" accept=".docx" hidden @change="onImport" />
+        <input ref="importInput" type="file" accept=".docx,.doc" hidden @change="onImport" />
         <button v-if="canRevise" class="btn primary" @click="startRevision">{{ fmtRev(p.rev + 1) }} 개정 시작</button>
         <router-link v-if="can.aiDraft(session.user)" class="btn" :class="{ primary: !canRevise }" :to="'/products/' + p.id + '/ai/new'">AI 초안 생성</router-link>
       </div>
