@@ -60,7 +60,6 @@ const download = v => attempt(() => api.download('versions', v.id))
       <div class="panel-body">
         <ul class="timeline">
           <li v-for="(c, i) in h.changes" :key="i" :class="{ 'k-complete': c.change }">
-            <span></span>
             <div><div>{{ c.text }}</div><div class="xs muted"><span class="num">{{ fmtDateTime(c.at) }}</span> · {{ c.user?.name }}</div></div>
           </li>
         </ul>
