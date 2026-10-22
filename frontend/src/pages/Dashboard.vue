@@ -28,9 +28,10 @@ const QUICK = {
 const count = k => reqs.value.filter(QUICK[k].test).length
 
 // 제품별: 상태마다 몇 건인지 (요청이 있는 제품만, 열린 요청 많은 순)
+// 확인 완료는 계속 쌓이므로 최근 7일 것만 센다. 지난 것은 아래 목록의 '전체'와 버전·이력에서 본다
 const byProduct = computed(() => {
   const m = new Map()
-  for (const r of reqs.value) {
+  for (const r of reqs.value.filter(r => r.status !== 'closed' || closedThisWeek(r))) {
     const e = m.get(r.product.id) || { ...r.product, n: {}, total: 0, open: 0, late: 0 }
     e.n[r.status] = (e.n[r.status] || 0) + 1
     e.total++
@@ -71,7 +72,7 @@ function pickQuick(k) {
 function pickProduct(p, st = null) {
   product.value = p
   status.value = st
-  quick.value = st && !OPEN.includes(st) ? 'all' : quick.value === 'week' ? 'all' : quick.value
+  quick.value = st === 'closed' ? 'week' : quick.value === 'week' ? 'all' : quick.value
 }
 function pickAssignee(a) {
   assignee.value = assignee.value?.id === a.id ? null : a
@@ -115,7 +116,7 @@ const EV = { requested: '요청', checking: '시작', done: '수정 완료', clo
 
     <div class="cols">
       <section class="panel">
-        <div class="panel-head"><h2>제품별 요청</h2>
+        <div class="panel-head"><h2>제품별 요청</h2><span class="xs muted">확인 완료는 최근 7일만</span>
           <span class="legend xs muted"><span v-for="s in REQ_STEPS" :key="s"><i :class="'seg-' + s"></i>{{ REQ_STATUS[s] }}</span></span>
         </div>
         <div class="panel-body bars" v-if="byProduct.length">
