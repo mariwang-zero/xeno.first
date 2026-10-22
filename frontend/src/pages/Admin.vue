@@ -22,7 +22,7 @@ async function loadFolder() {
 onMounted(() => { load(); loadFolder() })
 
 // 매뉴얼 폴더: 데모는 이 브라우저에서 폴더를 골라 연결, 실제 서버는 설정의 NAS 폴더를 쓴다
-const syncText = r => [r.created ? `제품 폴더 ${r.created}개를 만들었습니다.` : '제품 폴더가 모두 있습니다.', r.added?.length ? `폴더에서 새 제품 ${r.added.length}개를 찾아 '미분류'로 등록했습니다: ${r.added.join(', ')}` : ''].join(' ').trim()
+const syncText = r => [r.created ? `제품 폴더 ${r.created}개를 만들었습니다.` : '제품 폴더가 모두 있습니다.', r.added?.length ? `폴더에서 새 제품 ${r.added.length}개를 찾아 '미분류'로 등록했습니다: ${r.added.join(', ')}` : '', r.adopted ? `최종본 폴더의 Rev. 파일 ${r.adopted}개를 현재 사용본으로 반영했습니다.` : ''].join(' ').trim()
 async function folderAct(fn) {
   const r = await attempt(fn)
   if (r && r !== true) notify(r.created === undefined ? '폴더 연결을 끊었습니다.' : syncText(r))

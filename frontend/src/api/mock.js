@@ -296,6 +296,43 @@ export const api = {
     save()
     return wait(docSummary(d))
   },
+  // 최종본 폴더 반영: 폴더에 직접 넣은 Rev. 파일(예: LCLT-UM-KO_Rev.02.docx)을 현재 사용본으로 삼는다.
+  // files: 그 제품 최종본 폴더의 { name, size, at }. 화면·서버가 폴더를 읽은 뒤 부른다.
+  // 앱이 아는 Rev. 보다 높으면 그 Rev. 로 올리고, 같은 Rev. 인데 현재 사용본에 실제 파일이 없으면 그 파일을 잇는다.
+  // 돌려주는 값: 파일을 이어야 할 버전 [{ versionId, name }] (경로·보기용 파일은 부른 쪽이 붙인다)
+  adoptFolderFinal(productId, files) {
+    requireMe()
+    const p = productOf(productId)
+    const best = (files || [])
+      .filter(f => /\.docx?$/i.test(f.name) && !f.name.startsWith('~$'))
+      .map(f => ({ ...f, rev: Number(f.name.match(/Rev\.?\s*0*(\d{1,2})(?!\d)/i)?.[1] ?? NaN) }))
+      .filter(f => Number.isInteger(f.rev))
+      .sort((a, b) => b.rev - a.rev || (b.at || '').localeCompare(a.at || ''))[0]
+    if (!p || !best) return []
+    const cur = db.versions.find(v => v.id === p.currentVersionId)
+    if (best.rev === p.rev && cur) {
+      if (cur.path || cur.file) return []
+      return [{ versionId: cur.id, name: best.name }]
+    }
+    if (best.rev < p.rev) return []
+    const base = cur ? docOf(cur.docId) : null
+    const d = { id: nextId('doc', 'd'), productId: p.id, title: `${p.name} KO 사용설명서 ${fmtRev(best.rev)} (최종본 폴더)`, status: 'deploy', held: null, ownerId: me.id, lock: null, createdAt: now(), pages: base?.pages ? clone(base.pages) : cameraManual(p.name), manualLeft: [] }
+    db.docs.push(d)
+    const v = addVersion(d.id, 'final', best.name, `최종본 폴더에 있던 파일을 ${fmtRev(best.rev)} 현재 사용본으로 반영`, Math.round((best.size || 0) / 1e5) / 10 || 0.1)
+    const old = p.rev
+    p.rev = best.rev
+    p.currentVersionId = v.id
+    db.revs = db.revs.filter(r => !(r.productId === p.id && r.rev === best.rev))
+    db.revs.push({ productId: p.id, rev: best.rev, summary: '최종본 폴더에서 반영', at: (best.at || now()).slice(0, 10), userId: me.id })
+    log(d.id, `최종본 폴더 반영: ${best.name} (${fmtRev(old)} → ${fmtRev(best.rev)})`, true)
+    // 진행 중인 개정은 배포하면 그다음 Rev. 가 된다
+    for (const o of db.docs.filter(x => x.productId === p.id && x.status !== 'deploy')) {
+      o.title = o.title.replace(/Rev\.\d+ 개정$/, `${fmtRev(best.rev + 1)} 개정`)
+      log(o.id, `최종본 폴더에 ${fmtRev(best.rev)} 파일이 있어 이 작업은 배포하면 ${fmtRev(best.rev + 1)}이 됩니다. 원본이 ${fmtRev(best.rev)}와 다르면 편집본을 다시 올려 주세요.`)
+    }
+    save()
+    return [{ versionId: v.id, name: best.name }]
+  },
   // 배포 뒤 다음 개정: 현재 사용본을 원본으로 새 작업을 만들고 진행 중부터 다시 돈다 (배포 → 진행 중 → … → 배포, Rev. +1)
   async startRevision(productId) {
     requireMe()

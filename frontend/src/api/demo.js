@@ -28,6 +28,20 @@ function saveBlob(file, name) {
 }
 const plainName = rel => rel.split('/').at(-1).replace(/^\d{8}-\d{6}_/, '')
 
+// 최종본 폴더에 직접 넣은 Rev. 파일을 현재 사용본으로 반영하고, 그 파일을 내려받기·뷰어에 잇는다
+async function adoptFinals(p, subs) {
+  const files = (subs || (await folder.listProduct(p.name))).find(x => x.sub === '최종본')?.files || []
+  const hits = mock.adoptFolderFinal(p.id, files)
+  for (const h of hits) {
+    const v = db().versions.find(x => x.id === h.versionId)
+    v.path = `${safeName(p.name)}/최종본/${h.name}`
+    const blob = await folder.read(v.path).catch(() => null)
+    if (blob) await keepForViewer(v, blob)
+  }
+  if (hits.length) server.save()
+  return hits.length
+}
+
 // 연결 직후·다시 읽기: 모든 제품의 폴더를 만들고, 목록에 없는 폴더는 제품으로 등록한다
 async function sync() {
   let created = 0
@@ -36,7 +50,9 @@ async function sync() {
   const fresh = (await folder.folderNames()).filter(n => !known.has(n.toLowerCase()))
   const added = fresh.length ? await mock.registerFolders(fresh) : []
   for (const name of added) await folder.ensureProduct(name)
-  return { created, added }
+  let adopted = 0
+  for (const p of db().products) adopted += await adoptFinals(p)
+  return { created, added, adopted }
 }
 
 // 데모에는 워드→PDF 변환기가 없다. 함께 올린 PDF 가 있으면 그것을, 없으면 .docx 를 브라우저에서 바로 그려 보여 준다
@@ -69,7 +85,9 @@ export const api = {
     const p = productOf(productId)
     const st = await folder.status()
     if (!st.connected) return { ...st, subs: SUBFOLDERS.map(sub => ({ sub, files: [] })) }
-    return { ...st, path: safeName(p.name), subs: await folder.listProduct(p.name) }
+    const subs = await folder.listProduct(p.name)
+    const adopted = folder.ready() ? await adoptFinals(p, subs) : 0
+    return { ...st, path: safeName(p.name), subs, adopted }
   },
   async openFolderFile(productId, sub, name) {
     if (!folder.ready()) throw new Error('먼저 폴더를 연결해 주세요.')

@@ -33,6 +33,8 @@ const folder = ref(null)
 const folderSub = ref('최종본')
 async function loadFolder() {
   try { folder.value = await api.productFolder(props.id) } catch (e) { folder.value = { connected: false, error: e.message, subs: [] } }
+  // 최종본 폴더의 Rev. 파일을 새로 반영했으면 Rev.·현재 사용본을 다시 읽는다
+  if (folder.value?.adopted) p.value = await api.product(props.id)
 }
 async function regrant() {
   if (await attempt(() => api.regrantFolder(), '폴더를 다시 연결했습니다.')) loadFolder()

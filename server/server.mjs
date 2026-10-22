@@ -184,6 +184,21 @@ function ensureAllFolders() {
   }
   return { created }
 }
+// 최종본 폴더에 직접 넣은 Rev. 파일(예: LCLT-UM-KO_Rev.02.docx)을 현재 사용본으로 반영하고 그 파일을 잇는다
+function adoptFinals(p, userId) {
+  const files = listProductFolder(p).find(x => x.sub === '최종본')?.files || []
+  const hits = as(userId, () => api.adoptFolderFinal(p.id, files))
+  for (const h of hits) {
+    const v = db().versions.find(x => x.id === h.versionId)
+    v.path = path.join(safe(p.name), '최종본', h.name)
+    delete v.nofile
+    const d = docOf(v.docId)
+    if (/\.docx$/i.test(h.name)) { const pages = pagesOf(fs.readFileSync(path.join(FILES, v.path))); if (pages) d.pages = pages }
+    previews.request(v.path)
+  }
+  if (hits.length) server.save()
+  return hits.length
+}
 // NAS 폴더에 직접 만든 제품 폴더는 제품 목록에 등록한다 (대분류: 미분류)
 async function syncFolders(userId) {
   if (!fs.existsSync(FILES)) throw new HttpError(400, 'NAS 공유 폴더에 연결되지 않았습니다. 서버 설정(filesDir)과 NAS 연결을 확인해 주세요.')
@@ -192,7 +207,9 @@ async function syncFolders(userId) {
   const fresh = fs.readdirSync(FILES, { withFileTypes: true }).filter(e => e.isDirectory() && isProductFolder(e.name) && !known.has(e.name.toLowerCase())).map(e => e.name)
   const added = fresh.length ? await as(userId, () => api.registerFolders(fresh)) : []
   ensureAllFolders()
-  return { created, added }
+  let adopted = 0
+  for (const p of db().products) adopted += adoptFinals(p, userId)
+  return { created, added, adopted }
 }
 function listProductFolder(product) {
   return SUBFOLDERS.map(sub => {
@@ -360,11 +377,12 @@ route('POST', '/admin/folder/sync', ({ sess }) => {
   return syncFolders(sess.userId)
 })
 route('POST', '/admin/folders/register', ({ body, sess }) => as(sess.userId, () => api.registerFolders(body.names || [])))
-route('GET', '/products/:id/folder', ({ params }) => {
+route('GET', '/products/:id/folder', ({ params, sess }) => {
   const p = productOf(params.id)
   if (!p) throw new HttpError(404, '제품을 찾을 수 없습니다.')
   const connected = fs.existsSync(FILES)
-  return { mode: 'server', name: FILES, path: safe(p.name), connected, subs: connected ? listProductFolder(p) : [] }
+  const adopted = connected ? adoptFinals(p, sess.userId) : 0
+  return { mode: 'server', name: FILES, path: safe(p.name), connected, subs: connected ? listProductFolder(p) : [], adopted }
 })
 route('GET', '/products/:id/folder/file', ({ params, req, res }) => {
   const p = productOf(params.id)
